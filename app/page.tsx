@@ -66,7 +66,7 @@ export default function Home() {
               Build Your Portfolio Free
             </a>
             <a
-              href="https://apps.apple.com"
+              href="https://apps.apple.com/tr/app/viefolio/id6792746265"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-[#0f172a] bg-white border border-[#e2e8f0] hover:border-[#c7d2fe] hover:bg-[#fafafe]"
@@ -353,7 +353,7 @@ export default function Home() {
               Create Your Portfolio — Free
             </a>
             <a
-              href="https://apps.apple.com"
+              href="https://apps.apple.com/tr/app/viefolio/id6792746265"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-[#0f172a] bg-white border border-[#e2e8f0] hover:border-[#c7d2fe] hover:bg-[#fafafe]"
