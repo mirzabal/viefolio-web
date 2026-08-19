@@ -417,7 +417,9 @@ function MinimalCard({ p, color, onClick, onImageClick, cardStyle }: {
       {p.showImage && p.imageUrl ? (
         <div className={`${s.minimalThumb} img-zone`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.imageUrl} alt={p.title} loading="lazy" decoding="async" className={`${s.mediaImg} zoom-img`} style={{ objectFit: "cover" }} />
+          <img src={p.imageUrl} alt="" aria-hidden="true" className={s.mediaBlur} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.imageUrl} alt={p.title} loading="lazy" decoding="async" className={`${s.mediaImg} zoom-img`} />
           {onImageClick && (
             <button type="button" onClick={e => { e.stopPropagation(); onImageClick(p.imageUrl); }} aria-label={`Open image for ${p.title}`} className="img-overlay" style={{ zIndex: 2 }}>
               <Icon name="search" size={18} strokeWidth={2} />
