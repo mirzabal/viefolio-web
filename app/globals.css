@@ -1,133 +1,1105 @@
-@import "tailwindcss";
+/* ═══════════════════════════════════════════════════════════
+   Viefolio design system
+   No utility framework. Tokens → reset → type → primitives.
+   Component-specific layout lives in *.module.css next to the file.
+   ═══════════════════════════════════════════════════════════ */
 
-@theme inline {
-  --color-background: oklch(99.4% 0.004 264);
-  --color-foreground: oklch(15% 0.02 264);
-  --color-brand: oklch(56% 0.2 264);
-  --color-brand-light: oklch(65% 0.17 264);
-  --color-brand-dark: oklch(49% 0.22 264);
-  --color-brand-50: oklch(97% 0.016 264);
-  --color-brand-100: oklch(94% 0.027 264);
-  --color-surface: oklch(97.8% 0.006 264);
-  --color-border: oklch(91.5% 0.009 264);
-  --color-text-primary: oklch(15% 0.02 264);
-  --color-text-secondary: oklch(44% 0.025 264);
-  --color-text-tertiary: oklch(62% 0.015 264);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Tokens ─────────────────────────────────────────────── */
+:root {
+  /* Paper — the light ground. Cream, not white; white reads generic. */
+  --paper: #fdfbf3;
+  --paper-sunk: #f6f0dd;
+  --paper-raised: #fffefa;
+
+  /* Butter — the accent. Straight from the palette. */
+  --butter: #ffefb3;
+  --butter-deep: #ffe38d;
+  --butter-wash: #fff9e2;
+
+  /* Ink — the green. Every contrast pair below is measured, not guessed. */
+  --ink: #013e37;        /* 11.6:1 on paper */
+  --ink-2: #33605a;      /*  6.8:1 on paper */
+  --ink-3: #48706a;      /*  5.3:1 on paper */
+  --ink-deep: #012b26;   /* dark section ground */
+
+  /* On dark ink surfaces */
+  --on-ink: #ffefb3;     /* 10.5:1 on ink */
+  --on-ink-2: #c2b78b;   /*  6.0:1 on ink */
+
+  --line: rgb(1 62 55 / 0.14);
+  --line-soft: rgb(1 62 55 / 0.07);
+  --line-on-ink: rgb(255 239 179 / 0.22);
+  --line-on-ink-soft: rgb(255 239 179 / 0.12);
+
+  /* Semantic — tuned to sit inside the same family */
+  --danger: #a12d1a;
+  --danger-wash: #fdefeb;
+  --success: #2c6b46;
+  --success-wash: #edf5ef;
+  --warn: #845506;
+  --warn-wash: #fdf4e2;
+
+  /* Type */
+  --font-sans: var(--font-montserrat, ui-sans-serif), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-fraunces, ui-serif), Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --step--1: clamp(0.79rem, 0.77rem + 0.09vw, 0.84rem);
+  --step-0: clamp(0.94rem, 0.91rem + 0.13vw, 1rem);
+  --step-1: clamp(1.13rem, 1.07rem + 0.28vw, 1.27rem);
+  --step-2: clamp(1.35rem, 1.25rem + 0.5vw, 1.6rem);
+  --step-3: clamp(1.62rem, 1.45rem + 0.83vw, 2.03rem);
+  --step-4: clamp(1.94rem, 1.68rem + 1.3vw, 2.57rem);
+  --step-5: clamp(2.33rem, 1.93rem + 1.99vw, 3.25rem);
+  --step-6: clamp(2.8rem, 2.2rem + 2.98vw, 4.11rem);
+
+  /* Space — a 4px-rooted scale, named so intent survives refactors */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-s: 1rem;
+  --space-m: 1.5rem;
+  --space-l: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --space-4xl: 8rem;
+
+  --radius-xs: 6px;
+  --radius-s: 10px;
+  --radius-m: 14px;
+  --radius-l: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  --shadow-s: 0 1px 2px rgb(1 62 55 / 0.05);
+  --shadow-m: 0 6px 20px -8px rgb(1 62 55 / 0.14);
+  --shadow-l: 0 18px 48px -18px rgb(1 62 55 / 0.24);
+
+  /* Motion. Built-in CSS easings are too weak for deliberate movement. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --dur-press: 160ms;
+  --dur-hover: 180ms;
+  --dur-enter: 240ms;
+  --dur-exit: 150ms;
+
+  --wrap: 68rem;
+  --wrap-narrow: 46rem;
+  --header-h: 4rem;
+}
+
+/* Sections that flip to the dark green ground re-point the same tokens,
+   so every primitive inside keeps working without a variant class. */
+.on-ink {
+  --paper: var(--ink-deep);
+  --paper-sunk: #01221e;
+  --paper-raised: #023029;
+  --ink: var(--on-ink);
+  --ink-2: var(--on-ink-2);
+  --ink-3: var(--on-ink-2);
+  --line: var(--line-on-ink);
+  --line-soft: var(--line-on-ink-soft);
+  background: var(--ink-deep);
+  color: var(--on-ink);
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
 }
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(1 62 55 / 0.28) transparent;
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  font-weight: 450;
+  line-height: 1.6;
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Animations */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+::selection {
+  background: var(--butter);
+  color: var(--ink);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(1 62 55 / 0.22);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(1 62 55 / 0.36);
+}
+
+/* ── Focus ──────────────────────────────────────────────── */
+/* Inputs carry no outline of their own, so this is the only thing standing
+   between a keyboard user and a lost cursor. focus-visible keeps it quiet
+   for mouse clicks. */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.on-ink :focus-visible {
+  outline-color: var(--butter);
+}
+
+/* ── Typography ─────────────────────────────────────────── */
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--step-5);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+h2 {
+  font-size: var(--step-4);
+}
+h3 {
+  font-size: var(--step-2);
+}
+h4 {
+  font-size: var(--step-1);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Fraunces carries the editorial voice: intros, pull quotes, the one line
+   per section that should feel written rather than generated. */
+.serif {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 30, "WONK" 1;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.lede {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  font-size: var(--step-1);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  letter-spacing: -0.02em;
+  font-variant-ligatures: none;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+.quiet {
+  color: var(--ink-3);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Layout primitives ──────────────────────────────────── */
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: var(--space-m);
+}
+
+.wrap-narrow {
+  width: 100%;
+  max-width: var(--wrap-narrow);
+  margin-inline: auto;
+  padding-inline: var(--space-m);
+}
+
+.stack > * + * {
+  margin-block-start: var(--stack-gap, var(--space-s));
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cluster-gap, var(--space-2xs));
+}
+
+.split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.divider {
+  height: 1px;
+  border: 0;
+  background: var(--line);
+}
+
+/* A small layout layer. Ten classes with a --gap knob, not a utility
+   framework — every design system needs flex and grid shorthands somewhere. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap, 0.5rem);
+}
+.row--top {
+  align-items: flex-start;
+}
+.row--between {
+  justify-content: space-between;
+}
+.row--wrap {
+  flex-wrap: wrap;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap, 0.5rem);
+}
+.grow {
+  flex: 1;
+  min-inline-size: 0;
+}
+.noshrink {
+  flex-shrink: 0;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.grid-2,
+.grid-3 {
+  display: grid;
+  gap: var(--gap, 0.75rem);
+}
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.scroll-y {
+  overflow-y: auto;
+  min-block-size: 0;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+/* Press feedback is the highest-leverage detail in the whole system: it is
+   how the interface says it heard you. */
+.btn {
+  --btn-bg: transparent;
+  --btn-fg: var(--ink);
+  --btn-border: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  padding: 0.7rem 1.15rem;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-size: var(--step--1);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-hover) ease,
+    border-color var(--dur-hover) ease,
+    color var(--dur-hover) ease,
+    box-shadow var(--dur-hover) var(--ease-out);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:disabled:active {
+  transform: none;
+}
+
+.btn--primary {
+  --btn-bg: var(--ink);
+  --btn-fg: var(--butter);
+  --btn-border: var(--ink);
+}
+
+.btn--accent {
+  --btn-bg: var(--butter);
+  /* --ink-deep, not --ink: .on-ink remaps --ink to butter, which would put
+     butter text on a butter fill. */
+  --btn-fg: var(--ink-deep);
+  --btn-border: var(--butter);
+}
+
+.btn--outline {
+  --btn-bg: transparent;
+  --btn-fg: var(--ink);
+  --btn-border: var(--line);
+}
+
+.btn--quiet {
+  --btn-fg: var(--ink-2);
+  padding-inline: 0.7rem;
+}
+
+.btn--danger {
+  --btn-fg: var(--danger);
+}
+
+.btn--sm {
+  padding: 0.45rem 0.8rem;
+  font-size: 0.78rem;
+  border-radius: var(--radius-s);
+}
+
+.btn--lg {
+  padding: 0.9rem 1.6rem;
+  font-size: var(--step-0);
+  border-radius: var(--radius-l);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--icon {
+  padding: 0.45rem;
+  border-radius: var(--radius-s);
+}
+
+/* Hover motion is gated: a touch device fires hover on tap and then leaves
+   the element stuck in that state. */
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover:not(:disabled) {
+    --btn-bg: #01524a;
+    --btn-border: #01524a;
+  }
+  .btn--accent:hover:not(:disabled) {
+    --btn-bg: var(--butter-deep);
+    --btn-border: var(--butter-deep);
+  }
+  .btn--outline:hover:not(:disabled) {
+    --btn-bg: var(--butter-wash);
+    --btn-border: var(--ink-3);
+  }
+  .btn--quiet:hover:not(:disabled),
+  .btn--danger:hover:not(:disabled) {
+    --btn-bg: var(--paper-sunk);
+  }
+  .btn--danger:hover:not(:disabled) {
+    --btn-bg: var(--danger-wash);
+  }
+}
+
+/* Any other pressable thing — cards, icon toggles, links acting as buttons */
+.pressable {
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.pressable:active {
+  transform: scale(0.97);
+}
+
+/* ── Surfaces ───────────────────────────────────────────── */
+.card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: var(--space-m);
+}
+
+.card--sunk {
+  background: var(--paper-sunk);
+  border-color: transparent;
+}
+
+.card--butter {
+  background: var(--butter);
+  border-color: transparent;
+}
+
+.panel {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-m);
+}
+
+.tile {
+  transition:
+    transform var(--dur-hover) var(--ease-out),
+    box-shadow var(--dur-hover) var(--ease-out),
+    border-color var(--dur-hover) ease,
+    background-color var(--dur-hover) ease;
+}
+.tile:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tile--lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-m);
+    border-color: var(--ink-3);
+  }
+  .tile--grow:hover {
+    transform: scale(1.04);
+  }
+  .tile--nudge:hover {
+    transform: scale(1.015);
+    box-shadow: var(--shadow-m);
+  }
+  .tile:hover .zoom-img {
+    transform: scale(1.04);
+  }
+  .tile:hover .img-overlay,
+  .img-zone:hover .img-overlay {
+    opacity: 1;
+  }
+}
+
+.zoom-img {
+  transition: transform 200ms var(--ease-out);
+}
+
+.img-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  background: rgb(1 43 38 / 0.34);
+  color: var(--butter);
+  transition: opacity var(--dur-hover) ease;
+}
+.img-overlay:focus-visible {
+  opacity: 1;
+}
+
+/* ── Form controls ──────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.label {
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--step--1);
+  outline: none;
+  transition:
+    border-color var(--dur-hover) ease,
+    box-shadow var(--dur-hover) ease,
+    background-color var(--dur-hover) ease;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-3);
+  opacity: 0.75;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgb(1 62 55 / 0.1);
+}
+
+.input[data-invalid="true"],
+.textarea[data-invalid="true"] {
+  border-color: var(--danger);
+}
+.input[data-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px rgb(161 45 26 / 0.12);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.select {
+  appearance: none;
+  padding-inline-end: 2rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+    linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position: calc(100% - 1rem) 55%, calc(100% - 0.68rem) 55%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.input--sm,
+.select--sm {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-s);
+}
+.select--sm {
+  padding-inline-end: 1.8rem;
+}
+
+/* Field with a leading prefix, e.g. the username domain */
+.input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+  overflow: hidden;
+  transition: border-color var(--dur-hover) ease, box-shadow var(--dur-hover) ease;
+}
+.input-group:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgb(1 62 55 / 0.1);
+}
+.input-group .input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.input-group[data-state="taken"] {
+  border-color: var(--danger);
+}
+.input-group[data-state="available"] {
+  border-color: var(--success);
+}
+.input-group__affix {
+  padding-inline: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* Chips — segmented choices, toggles, filters */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper-raised);
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 650;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-hover) ease,
+    border-color var(--dur-hover) ease,
+    color var(--dur-hover) ease;
+}
+.chip:active {
+  transform: scale(0.97);
+}
+.chip[data-active="true"] {
+  background: var(--butter);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.chip[aria-disabled="true"] {
+  opacity: 0.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover {
+    background: var(--butter-wash);
+    border-color: var(--ink-3);
+  }
+  .chip[data-active="true"]:hover {
+    background: var(--butter-deep);
+  }
+}
+
+.chip--grow {
+  flex: 1;
+}
+
+.chip--dashed {
+  border-style: dashed;
+  background: transparent;
+}
+
+/* Read-only labels */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-xs);
+  background: var(--paper-sunk);
+  color: var(--ink-2);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+.tag[data-tone="accent"] {
+  background: var(--butter);
+  color: var(--ink);
+}
+.tag[data-tone="success"] {
+  background: var(--success-wash);
+  color: var(--success);
+}
+.tag[data-tone="danger"] {
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+/* Toggle switch */
+.switch {
+  position: relative;
+  inline-size: 2.5rem;
+  block-size: 1.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  transition: background-color var(--dur-hover) ease;
+  flex-shrink: 0;
+}
+.switch[data-on="true"] {
+  background: var(--ink);
+}
+.switch__knob {
+  position: absolute;
+  inset-block-start: 0.185rem;
+  inset-inline-start: 0.185rem;
+  inline-size: 1.13rem;
+  block-size: 1.13rem;
+  border-radius: 50%;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-s);
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.switch[data-on="true"] .switch__knob {
+  transform: translateX(1rem);
+  background: var(--butter);
+}
+
+/* Range */
+.range {
+  inline-size: 100%;
+  block-size: 1.25rem;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  block-size: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--paper-sunk);
+}
+.range::-moz-range-track {
+  block-size: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--paper-sunk);
+}
+.range::-webkit-slider-thumb {
+  appearance: none;
+  margin-block-start: -6px;
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--butter);
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.range::-moz-range-thumb {
+  inline-size: 16px;
+  block-size: 16px;
+  border: 2px solid var(--butter);
+  border-radius: 50%;
+  background: var(--ink);
+}
+.range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+/* Checkbox */
+.check {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  accent-color: var(--ink);
+  flex-shrink: 0;
+  margin-block-start: 0.15rem;
+}
+
+/* ── Notes / banners ────────────────────────────────────── */
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line);
+  background: var(--paper-sunk);
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
+.note[data-tone="danger"] {
+  background: var(--danger-wash);
+  border-color: rgb(161 45 26 / 0.2);
+  color: var(--danger);
+}
+.note[data-tone="success"] {
+  background: var(--success-wash);
+  border-color: rgb(44 107 70 / 0.2);
+  color: var(--success);
+}
+.note[data-tone="warn"] {
+  background: var(--warn-wash);
+  border-color: rgb(132 85 6 / 0.2);
+  color: var(--warn);
+}
+.note svg {
+  flex-shrink: 0;
+  margin-block-start: 0.15rem;
+}
+
+/* ── Progress ───────────────────────────────────────────── */
+.progress {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--progress-h, 6px);
+  border-radius: var(--radius-pill);
+  background: var(--track, var(--paper-sunk));
+  overflow: hidden;
+}
+.progress__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: var(--radius-pill);
+  transform-origin: left;
+  background: var(--ink);
+}
+
+/* ── Collapse ───────────────────────────────────────────── */
+/* grid-template-rows 0fr → 1fr instead of animating height:auto, which needs
+   a JS measurement pass on every frame. */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-enter) var(--ease-out);
+}
+.collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.collapse__inner {
+  overflow: hidden;
+  min-block-size: 0;
+}
+
+/* ── Hold to confirm ────────────────────────────────────── */
+/* Destructive actions. Press is slow and deliberate; release snaps back.
+   Asymmetric on purpose: slow where the user decides, fast where the
+   system responds. */
+.hold-target {
+  position: relative;
+  overflow: hidden;
+}
+.hold-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--danger-wash);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 200ms var(--ease-out);
+}
+.hold-target[data-holding="true"] .hold-fill {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1.6s linear;
+}
+
+/* ── Loading ────────────────────────────────────────────── */
+.spinner {
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.skeleton {
+  background: var(--paper-sunk);
+  border-radius: var(--radius-s);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ── Entrances ──────────────────────────────────────────── */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  opacity: 0;
-}
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
-  opacity: 0;
-}
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.delay-100 { animation-delay: 100ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-.delay-500 { animation-delay: 500ms; }
-
-/* Gradient headline text */
-.gradient-text {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Interactive buttons — CSS replaces framer-motion hover/tap on static pages */
-.btn-primary {
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
-}
-.btn-primary:hover {
-  transform: scale(1.02);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.35);
-}
-.btn-primary:active {
-  transform: scale(0.97);
-}
-.btn-secondary {
-  transition: transform 0.15s ease, border-color 0.2s ease, background-color 0.2s ease;
-}
-.btn-secondary:hover {
-  transform: scale(1.02);
-}
-.btn-secondary:active {
-  transform: scale(0.97);
-}
-.logo-mark {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-a:hover > .logo-mark {
-  transform: scale(1.08) rotate(3deg);
-}
-
-/* Hero glow */
-.hero-glow {
-  background: radial-gradient(
-    ellipse 80% 50% at 50% -10%,
-    oklch(97% 0.016 264 / 0.65) 0%,
-    transparent 70%
-  );
-}
-
-/* Feature card */
-.feature-card {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.feature-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px -8px oklch(56% 0.2 264 / 0.08);
-  border-color: oklch(94% 0.027 264);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(80% 0.015 264); border-radius: 3px; }
-
-/* Accessibility: respect reduced-motion preference */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+  from {
+    opacity: 0;
   }
+}
+@keyframes growUp {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes drift {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.rise {
+  animation: riseIn 450ms var(--ease-out) both;
+}
+.fade {
+  animation: fadeIn 400ms var(--ease-out) both;
+}
+.drift {
+  animation: drift 6s ease-in-out infinite;
+}
+.bar-grow {
+  transform-origin: bottom;
+  animation: growUp 400ms var(--ease-out) both;
+}
+
+/* 60ms between items. Longer stagger reads as slow. */
+.delay-1 {
+  animation-delay: 60ms;
+}
+.delay-2 {
+  animation-delay: 120ms;
+}
+.delay-3 {
+  animation-delay: 180ms;
+}
+.delay-4 {
+  animation-delay: 240ms;
+}
+
+/* Scroll reveal — driven by components/Reveal.tsx. Motion lives here so
+   reduced-motion is handled in exactly one place. */
+.reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 320ms var(--ease-out),
+    transform 320ms var(--ease-out);
+}
+.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Reduced motion ─────────────────────────────────────── */
+/* Fewer and gentler, not zero. Opacity and colour transitions aid
+   comprehension and stay; movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .drift,
+  .bar-grow {
+    animation: none;
+  }
+  .rise,
+  .fade {
+    animation: fadeIn 200ms ease both;
+    animation-delay: 0ms !important;
+  }
+  .reveal {
+    transform: none;
+    transition: opacity 200ms ease;
+  }
+  .btn:active,
+  .chip:active,
+  .pressable:active,
+  .tile:active,
+  .tile--lift:hover,
+  .tile--grow:hover,
+  .tile--nudge:hover,
+  .tile:hover .zoom-img,
+  .range:active::-webkit-slider-thumb {
+    transform: none;
+  }
+  .switch__knob {
+    transition: none;
+  }
+}
+
+/* ── Late additions used by the dashboard ───────────────── */
+.input--sm,
+.select--sm {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.78rem;
+  border-radius: var(--radius-s);
+}
+.select--sm {
+  padding-inline-end: 1.7rem;
+}
+
+.chip--sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.68rem;
+}
+.chip--block {
+  inline-size: 100%;
+  justify-content: center;
+}
+.chip--icon {
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  padding: 0;
+}
+.chip--stack {
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-block: 0.55rem;
+}
+.chip--file {
+  cursor: pointer;
+}
+.chip--file[aria-disabled="true"] {
+  pointer-events: none;
+}
+
+.btn--dangerSolid {
+  --btn-bg: var(--danger);
+  --btn-fg: #fff;
+  --btn-border: var(--danger);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--dangerSolid:hover:not(:disabled) {
+    --btn-bg: #8b2415;
+    --btn-border: #8b2415;
+  }
+}
+
+.grid-5 {
+  display: grid;
+  gap: var(--gap, 0.5rem);
+  grid-template-columns: repeat(5, 1fr);
 }

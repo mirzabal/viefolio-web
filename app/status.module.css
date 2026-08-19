@@ -1,0 +1,76 @@
+/* Shared shell for the states nobody plans to see: 404, error boundary,
+   and the "portfolio not found" page. */
+
+.page {
+  min-block-size: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-l) var(--space-m);
+  background: var(--paper);
+}
+
+.card {
+  max-inline-size: 30rem;
+  text-align: center;
+}
+
+.mark {
+  display: block;
+  inline-size: 3.5rem;
+  block-size: 3.5rem;
+  margin-inline: auto;
+  margin-block-end: var(--space-m);
+  object-fit: contain;
+}
+
+.code {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 60, "WONK" 1;
+  font-size: var(--step-2);
+  font-style: italic;
+  color: var(--ink-3);
+  display: block;
+  margin-block-end: 0.4rem;
+}
+
+.card h1 {
+  font-size: var(--step-4);
+}
+
+.card p {
+  margin-block-start: var(--space-s);
+  color: var(--ink-2);
+  font-size: var(--step-0);
+  line-height: 1.7;
+}
+
+.actions {
+  margin-block-start: var(--space-l);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+@media (min-width: 30rem) {
+  .actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.digest {
+  margin-block-start: var(--space-l);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-3);
+  opacity: 0.7;
+}
+
+.handle {
+  font-family: var(--font-mono);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-xs);
+  background: var(--paper-sunk);
+  color: var(--ink);
+}

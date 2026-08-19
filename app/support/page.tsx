@@ -1,22 +1,11 @@
 import type { Metadata } from "next";
-import LegalPage, { LegalSection } from "@/components/LegalPage";
+import LegalPage, { LegalSection, Faq } from "@/components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Support — Viefolio",
+  title: "Support",
   description: "Get help with Viefolio, your living portfolio on iOS and the web.",
+  alternates: { canonical: "/support" },
 };
-
-function Faq({ q, a }: { q: string; a: React.ReactNode }) {
-  return (
-    <details className="group border border-[#f1f5f9] rounded-xl px-5 py-4 mb-3 bg-[#fafafe]">
-      <summary className="flex items-center justify-between cursor-pointer list-none font-semibold text-[#0f172a] text-[15px]">
-        {q}
-        <span className="text-[#94a3b8] transition-transform group-open:rotate-45">+</span>
-      </summary>
-      <div className="text-sm text-[#475569] leading-relaxed mt-3 space-y-2">{a}</div>
-    </details>
-  );
-}
 
 export default function SupportPage() {
   return (
@@ -24,16 +13,12 @@ export default function SupportPage() {
       <LegalSection title="Need help or found a bug?">
         <p>
           Email us at{" "}
-          <a href="mailto:support@viefolio.com" className="text-[#6366f1] underline">support@viefolio.com</a>{" "}
+          <a href="mailto:support@viefolio.com">support@viefolio.com</a>{" "}
           and we&rsquo;ll get back to you, usually within 1&ndash;2 business days. Please include your
           username and, if it&rsquo;s a bug, what you were doing when it happened.
         </p>
-        <a
-          href="mailto:support@viefolio.com"
-          className="inline-block mt-2 px-5 py-3 rounded-xl text-sm font-semibold text-white"
-          style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-        >
-          Contact Support
+        <a href="mailto:support@viefolio.com" className="btn btn--primary" style={{ marginBlockStart: "var(--space-s)" }}>
+          Contact support
         </a>
       </LegalSection>
 

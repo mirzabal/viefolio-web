@@ -4,6 +4,8 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import PortfolioView from "@/components/PortfolioView";
 import VisitTracker from "@/components/VisitTracker";
+import status from "@/app/status.module.css";
+import pv from "./portfolio.module.css";
 
 
 const FIRESTORE_BASE = "https://firestore.googleapis.com/v1/projects/portfolio-df758/databases/(default)/documents";
@@ -17,7 +19,7 @@ import type {
   Profile,
   SocialLink,
 } from "@/types/portfolio";
-import { DEFAULT_THEME } from "@/types/portfolio";
+import { DEFAULT_THEME, DEFAULT_ACCENT } from "@/types/portfolio";
 import type { Theme, SocialLinksLayout, UserInfoLayout } from "@/types/portfolio";
 
 /* ─── Firestore helpers ──────────────────────────────── */
@@ -64,17 +66,19 @@ const fetchProfile = cache(async function fetchProfile(username: string): Promis
   }
   // Migrate legacy themeColor → theme
   const rawTheme = doc.fields?.theme?.mapValue?.fields;
-  const legacyAccent = fStr(doc, "themeColor") || "#6366f1";
+  const legacyAccent = fStr(doc, "themeColor") || DEFAULT_ACCENT;
   const colorFields = rawTheme?.colors?.mapValue?.fields;
-  const legacyCard = colorFields?.card?.stringValue ?? colorFields?.projectCard?.stringValue ?? '#f8f9fa';
+  const legacyCard = colorFields?.card?.stringValue ?? colorFields?.projectCard?.stringValue ?? DEFAULT_THEME.colors.card;
+  // 'SOFT' was removed with the old lavender palette — fold it into MINIMAL.
+  const storedPreset = rawTheme?.preset?.stringValue;
   const migratedTheme: Theme = rawTheme ? {
-    preset: (rawTheme?.preset?.stringValue as Theme['preset']) ?? 'MINIMAL',
+    preset: (storedPreset === 'SOFT' ? 'MINIMAL' : storedPreset as Theme['preset']) ?? 'MINIMAL',
     colors: {
-      background: colorFields?.background?.stringValue ?? '#ffffff',
+      background: colorFields?.background?.stringValue ?? DEFAULT_THEME.colors.background,
       card: legacyCard,
       accent: colorFields?.accent?.stringValue ?? legacyAccent,
-      text: colorFields?.text?.stringValue ?? '#0f172a',
-      descriptionColor: colorFields?.descriptionColor?.stringValue ?? '#64748b',
+      text: colorFields?.text?.stringValue ?? DEFAULT_THEME.colors.text,
+      descriptionColor: colorFields?.descriptionColor?.stringValue ?? DEFAULT_THEME.colors.descriptionColor,
     },
     texture: (rawTheme?.texture?.stringValue as Theme['texture']) ?? 'NONE',
     fontFamily: rawTheme?.fontFamily?.stringValue as Theme['fontFamily'] | undefined,
@@ -99,6 +103,9 @@ const fetchProfile = cache(async function fetchProfile(username: string): Promis
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     skills: fArr(doc, "skills").map((v: any) => ({ id: fMapStr(v, "id") || crypto.randomUUID(), name: fMapStr(v, "name"), level: fMapNum(v, "level") || 50, visible: v.mapValue?.fields?.visible?.booleanValue ?? true })),
     userId: fStr(doc, "userId"),
+    // Absent means "created before verification existed" — grandfathered as
+    // verified. Only an explicit false hides the portfolio.
+    emailVerified: doc.fields?.emailVerified?.booleanValue ?? true,
   };
 });
 
@@ -106,29 +113,35 @@ const fetchProfile = cache(async function fetchProfile(username: string): Promis
 export async function generateMetadata({ params }: { params: Promise<{ domain: string }> }): Promise<Metadata> {
   const { domain } = await params;
   const profile = await fetchProfile(domain);
-  if (!profile) {
-    return { title: "Portfolio Not Found", robots: { index: false } };
+  const url = `https://${domain}.viefolio.com`;
+
+  if (!profile || !profile.emailVerified) {
+    return { title: "Portfolio not found", robots: { index: false, follow: false } };
   }
+
   const name = profile.fullName || domain;
   const title = profile.title ? `${name} — ${profile.title}` : `${name} — Portfolio`;
-  const description = profile.bio || `Check out ${name}'s portfolio, built with Viefolio.`;
+  const description =
+    profile.bio ||
+    `${name}${profile.title ? `, ${profile.title}` : ""}${profile.location ? ` in ${profile.location}` : ""}. Portfolio built with Viefolio.`;
+
   return {
-    title,
+    metadataBase: new URL(url),
+    title: { absolute: title },
     description,
+    // Each portfolio is its own site; the template and canonical from the
+    // root layout would otherwise point every one of them at viefolio.com.
+    alternates: { canonical: url },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
     openGraph: {
       title,
       description,
       type: "profile",
-      url: `https://${domain}.viefolio.com`,
-      siteName: "Viefolio",
-      ...(profile.avatarUrl && profile.showAvatar ? { images: [{ url: profile.avatarUrl, alt: name }] } : {}),
+      url,
+      siteName: name,
+      locale: "en_US",
     },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-      ...(profile.avatarUrl && profile.showAvatar ? { images: [profile.avatarUrl] } : {}),
-    },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -167,18 +180,25 @@ async function fetchProjects(userId: string): Promise<Project[]> {
 /* ─── 404 Component ──────────────────────────────────── */
 function NotFound({ domain }: { domain: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-      <div className="text-center max-w-md px-6">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-          <span className="text-white font-bold text-2xl">V</span>
+    <main className={status.page}>
+      <div className={status.card}>
+        <img src="/logo.svg" alt="" aria-hidden="true" className={status.mark} />
+        <span className={status.code}>Not here yet</span>
+        <h1>This portfolio doesn&rsquo;t exist</h1>
+        <p>
+          Nobody has claimed <span className={status.handle}>{domain}.viefolio.com</span> so far.
+          It could be yours.
+        </p>
+        <div className={status.actions}>
+          <a href="https://viefolio.com/login" className="btn btn--primary btn--lg">
+            Claim this address
+          </a>
+          <a href="https://viefolio.com" className="btn btn--outline btn--lg">
+            What is Viefolio?
+          </a>
         </div>
-        <h1 className="text-2xl font-bold text-[#0f172a] mb-2">Portfolio Not Found</h1>
-        <p className="text-sm text-[#64748b] mb-6">The portfolio <span className="font-semibold text-[#0f172a]">{domain}.viefolio.com</span> doesn&apos;t exist yet.</p>
-        <a href="https://viefolio.com" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200/50" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-          Create your portfolio →
-        </a>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -186,7 +206,7 @@ function NotFound({ domain }: { domain: string }) {
 export default async function PortfolioPage({ params }: { params: Promise<{ domain: string }> }) {
   const { domain } = await params;
   const profileData = await fetchProfile(domain);
-  if (!profileData) return <NotFound domain={domain} />;
+  if (!profileData || !profileData.emailVerified) return <NotFound domain={domain} />;
 
   const { userId, ...profile } = profileData;
   let projects = await fetchProjects(userId);
@@ -198,37 +218,76 @@ export default async function PortfolioPage({ params }: { params: Promise<{ doma
   }
 
   const color = profile.theme.colors.accent;
+  const url = `https://${domain}.viefolio.com`;
+
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    mainEntity: {
+      "@type": "Person",
+      name: profile.fullName || domain,
+      url,
+      ...(profile.title ? { jobTitle: profile.title } : {}),
+      ...(profile.bio ? { description: profile.bio } : {}),
+      ...(profile.location ? { address: { "@type": "PostalAddress", addressLocality: profile.location } } : {}),
+      ...(profile.avatarUrl && profile.showAvatar ? { image: profile.avatarUrl } : {}),
+      ...(profile.socialLinks?.length
+        ? { sameAs: profile.socialLinks.filter(l => l.visible !== false && l.url).map(l => l.url) }
+        : {}),
+      ...(projects.length
+        ? {
+            subjectOf: projects.slice(0, 12).map(pr => ({
+              "@type": "CreativeWork",
+              name: pr.title,
+              ...(pr.description ? { description: pr.description } : {}),
+            })),
+          }
+        : {}),
+    },
+    isPartOf: { "@type": "WebSite", name: "Viefolio", url: "https://viefolio.com" },
+  };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: profile.theme.colors.background }}>
+    <div className={pv.page} style={{ backgroundColor: profile.theme.colors.background }}>
       <VisitTracker ownerUid={userId} />
-      {/* Glass Navbar */}
-      <nav className="sticky top-0 z-40 backdrop-blur-xl border-b" style={{ backgroundColor: `${profile.theme.colors.background}cc`, borderColor: `${color}15` }}>
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Viefolio" className="logo-mark w-12 h-12" />
-            <span className="text-m font-semibold tracking-tight" style={{ color: profile.theme.colors.text }}>{profile.fullName || domain}</span>
-          </div>
-          <a href="https://viefolio.com" className="text-xs hover:opacity-70 transition-colors font-medium" style={{ color }}>Built with Viefolio</a>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+      />
+
+      <nav
+        className={pv.bar}
+        style={{ backgroundColor: `${profile.theme.colors.background}cc`, borderColor: `${color}26` }}
+      >
+        <div className={pv.barInner}>
+          <span className={pv.who} style={{ color: profile.theme.colors.text }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="" aria-hidden="true" />
+            {profile.fullName || domain}
+          </span>
+          <a href="https://viefolio.com" className={pv.credit} style={{ color }}>
+            Built with Viefolio
+          </a>
         </div>
       </nav>
 
-      {/* Portfolio — UserInfo, SocialLinks, Skills, Projects all rendered by PortfolioView */}
-      <div className="max-w-5xl mx-auto px-6 flex-1 w-full">
+      <main className={pv.main}>
         <PortfolioView profile={profile} projects={projects} skills={profile.skills} />
-      </div>
+      </main>
 
-      {/* Glass Footer */}
-      <footer className="border-t backdrop-blur-xl" style={{ backgroundColor: `${profile.theme.colors.background}cc`, borderColor: `${color}15` }}>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Viefolio" className="logo-mark w-8 h-8" />
-            <span className="text-xs" style={{ color: `${profile.theme.colors.text}80` }}>Powered by <a href="https://viefolio.com" className="font-semibold transition-colors hover:opacity-70" style={{ color }}>Viefolio</a></span>
-          </div>
-          <span className="text-[10px]" style={{ color: `${profile.theme.colors.text}40` }}>{domain}.viefolio.com</span>
+      <footer className={pv.footer} style={{ borderColor: `${color}26` }}>
+        <div className={pv.barInner}>
+          <span className={pv.credit} style={{ color: `${profile.theme.colors.text}99` }}>
+            Powered by{" "}
+            <a href="https://viefolio.com" style={{ color, fontWeight: 700 }}>
+              Viefolio
+            </a>
+          </span>
+          <span className={pv.handle} style={{ color: `${profile.theme.colors.text}66` }}>
+            {domain}.viefolio.com
+          </span>
         </div>
       </footer>
     </div>
   );
 }
-

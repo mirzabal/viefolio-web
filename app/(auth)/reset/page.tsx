@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { verifyPasswordResetCode, confirmPasswordReset } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { Icon, Spinner } from "@/lib/icons";
+import a from "../auth.module.css";
 
 /* Custom handler for Firebase password-reset links (set as the Action URL in
  * Authentication → Templates). Verifies the code up front so users see the
@@ -52,63 +54,82 @@ function ResetForm() {
     }
   }
 
-  const inputCls = "w-full px-4 py-3 rounded-xl border border-[#e2e8f0] bg-white text-[#0f172a] text-sm placeholder:text-[#94a3b8] outline-none transition-all duration-200 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10";
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 py-16">
-      <div className="relative w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Viefolio" className="w-10 h-10" />
-            <span className="text-2xl font-semibold text-[#0f172a] tracking-tight">Viefolio</span>
-          </Link>
-        </div>
+    <div className={a.page}>
+      <div className={a.shell}>
+        <Link href="/" className={a.brand}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" aria-hidden="true" />
+          Viefolio
+        </Link>
 
-        <div className="bg-white rounded-2xl shadow-xl shadow-black/[0.04] border border-[#f1f5f9] p-8 md:p-10">
+        <div className={`${a.card} rise`}>
           {state === "checking" && (
-            <p className="text-sm text-[#64748b] text-center py-6">Checking your link…</p>
+            <p className="muted" style={{ textAlign: "center", paddingBlock: "var(--space-m)", display: "flex", justifyContent: "center", gap: "0.5rem", alignItems: "center" }}>
+              <Spinner size={16} /> Checking your link…
+            </p>
           )}
 
           {state === "bad-link" && (
-            <div className="text-center py-2">
-              <h1 className="text-xl font-bold text-[#0f172a] mb-2">Link not valid</h1>
-              <p className="text-sm text-[#64748b] mb-6">{error}</p>
-              <Link href="/login" className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-                Back to Sign In
-              </Link>
+            <div style={{ textAlign: "center" }}>
+              <h1 style={{ fontSize: "var(--step-2)" }}>Link not valid</h1>
+              <p className="muted" style={{ marginBlock: "var(--space-s) var(--space-l)", fontSize: "var(--step--1)" }}>{error}</p>
+              <Link href="/login" className="btn btn--primary btn--block">Back to sign in</Link>
             </div>
           )}
 
           {state === "ready" && (
             <>
-              <h1 className="text-xl font-bold text-[#0f172a] mb-1 text-center">Set a new password</h1>
-              <p className="text-sm text-[#64748b] mb-6 text-center">for <span className="font-semibold">{email}</span></p>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <input type="password" autoComplete="new-password" required minLength={6} placeholder="New password (min 6 characters)"
-                  value={password} onChange={e => setPassword(e.target.value)} className={inputCls}/>
-                <input type="password" autoComplete="new-password" required placeholder="Confirm new password"
-                  value={confirm} onChange={e => setConfirm(e.target.value)} className={inputCls}/>
-                {error && <p className="text-xs text-red-500">{error}</p>}
-                <button type="submit" disabled={saving}
-                  className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-                  {saving ? "Saving…" : "Reset Password"}
+              <div className={a.head}>
+                <h1 style={{ fontSize: "var(--step-2)" }}>Set a new password</h1>
+                <p>
+                  for <strong className="mono">{email}</strong>
+                </p>
+              </div>
+              <form onSubmit={handleSubmit} className={a.form}>
+                <div className="field">
+                  <label htmlFor="new-password" className="label">New password</label>
+                  <input id="new-password" type="password" autoComplete="new-password" required minLength={6}
+                    placeholder="At least 6 characters" value={password}
+                    onChange={e => setPassword(e.target.value)} className="input" autoFocus />
+                </div>
+                <div className="field">
+                  <label htmlFor="confirm-password" className="label">Confirm password</label>
+                  <input id="confirm-password" type="password" autoComplete="new-password" required
+                    placeholder="Type it again" value={confirm}
+                    data-invalid={!!confirm && confirm !== password}
+                    onChange={e => setConfirm(e.target.value)} className="input" />
+                </div>
+                <div className="collapse" data-open={!!error}>
+                  <div className="collapse__inner">
+                    <div className="note" data-tone="danger" role="alert">
+                      <Icon name="alert" size={16} />
+                      <span>{error}</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" disabled={saving} className="btn btn--primary btn--lg btn--block">
+                  {saving ? (<><Spinner size={16} /> Saving…</>) : "Reset password"}
                 </button>
               </form>
             </>
           )}
 
           {state === "done" && (
-            <div className="text-center py-2">
-              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-emerald-50 flex items-center justify-center">
-                <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            <div style={{ textAlign: "center" }}>
+              <div style={{
+                inlineSize: "3rem", blockSize: "3rem", marginInline: "auto",
+                marginBlockEnd: "var(--space-s)", borderRadius: "50%",
+                background: "var(--success-wash)", color: "var(--success)",
+                display: "grid", placeItems: "center",
+              }}>
+                <Icon name="check" size={22} strokeWidth={2.5} />
               </div>
-              <h1 className="text-xl font-bold text-[#0f172a] mb-2">Password reset</h1>
-              <p className="text-sm text-[#64748b] mb-6">You can sign in with your new password now.</p>
-              <Link href="/login" className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-                Sign In
-              </Link>
+              <h1 style={{ fontSize: "var(--step-2)" }}>Password reset</h1>
+              <p className="muted" style={{ marginBlock: "var(--space-s) var(--space-l)", fontSize: "var(--step--1)" }}>
+                You can sign in with your new password now.
+              </p>
+              <Link href="/login" className="btn btn--primary btn--block">Sign in</Link>
             </div>
           )}
         </div>

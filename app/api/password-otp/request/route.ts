@@ -27,7 +27,25 @@ export async function POST(req: Request) {
     if (!apiKey) return Response.json({ error: "Email service isn't configured yet." }, { status: 503 });
 
     const { purpose } = await req.json().catch(() => ({ purpose: "PASSWORD_CHANGE" }));
-    const otpPurpose = purpose === "DELETE_ACCOUNT" ? "DELETE_ACCOUNT" : "PASSWORD_CHANGE";
+    const otpPurpose =
+      purpose === "DELETE_ACCOUNT" ? "DELETE_ACCOUNT" :
+      purpose === "EMAIL_VERIFY" ? "EMAIL_VERIFY" :
+      "PASSWORD_CHANGE";
+
+    const copy = {
+      DELETE_ACCOUNT: {
+        heading: "Account deletion request",
+        body: "Enter this code in Viefolio to confirm deleting your account. This is permanent.",
+      },
+      PASSWORD_CHANGE: {
+        heading: "Password change request",
+        body: "Enter this code in Viefolio to confirm your password change.",
+      },
+      EMAIL_VERIFY: {
+        heading: "Confirm your email",
+        body: "Enter this code in Viefolio to finish setting up your account and publish your portfolio.",
+      },
+    }[otpPurpose];
 
     const code = String(randomInt(100000, 1000000));
     const codeHash = createHash("sha256").update(`${decoded.uid}:${code}`).digest("hex");
@@ -47,10 +65,12 @@ export async function POST(req: Request) {
         subject: `${code} is your Viefolio verification code`,
         html: `
           <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:420px;margin:0 auto;padding:32px 24px">
-            <h2 style="color:#0f172a;margin:0 0 8px">${otpPurpose === "DELETE_ACCOUNT" ? "Account deletion request" : "Password change request"}</h2>
-            <p style="color:#64748b;font-size:14px;line-height:1.6">Enter this code in Viefolio to confirm ${otpPurpose === "DELETE_ACCOUNT" ? "deleting your account. This is permanent." : "your password change."} It expires in 10 minutes.</p>
-            <p style="font-size:34px;font-weight:700;letter-spacing:8px;color:#6366f1;margin:24px 0">${code}</p>
-            <p style="color:#94a3b8;font-size:12px;line-height:1.6">If you didn't request this, someone may have access to your open session — change your password immediately and sign out of all devices.</p>
+            <h2 style="color:#013e37;margin:0 0 8px">${copy.heading}</h2>
+            <p style="color:#33605a;font-size:14px;line-height:1.6">${copy.body} It expires in 10 minutes.</p>
+            <p style="font-size:34px;font-weight:700;letter-spacing:8px;color:#013e37;margin:24px 0">${code}</p>
+            <p style="color:#48706a;font-size:12px;line-height:1.6">${otpPurpose === "EMAIL_VERIFY"
+              ? "If you didn't create a Viefolio account, you can ignore this email."
+              : "If you didn't request this, someone may have access to your open session — change your password immediately and sign out of all devices."}</p>
           </div>`,
       }),
     });

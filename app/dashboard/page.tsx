@@ -29,25 +29,15 @@ import { auth } from "@/lib/firebase";
 import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import PortfolioView, { ImageLightbox } from "@/components/PortfolioView";
+import { PROJECT_ICONS, Spinner } from "@/lib/icons";
+import css from "./dashboard.module.css";
 import OnboardingModal from "@/components/OnboardingModal";
 import { markOwnerDevice, recordWebSession, dailySeries, todayKey } from "@/lib/insights";
 import type { DeviceSession, VisitStats } from "@/lib/insights";
-import { DEFAULT_THEME, THEME_PRESETS } from "@/types/portfolio";
+import { DEFAULT_THEME, DEFAULT_ACCENT, THEME_PRESETS } from "@/types/portfolio";
 import type { ThemePreset, ThemeTexture, Theme, ThemeFont, CardStyle, ButtonStyle } from "@/types/portfolio";
 
 /* ─── Constants ──────────────────────────────────────── */
-const PROJECT_ICONS = [
-  { name: "Code", icon: "M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" },
-  { name: "Mobile", icon: "M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" },
-  { name: "Globe", icon: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" },
-  { name: "Database", icon: "M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" },
-  { name: "Palette", icon: "M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" },
-  { name: "Camera", icon: "M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" },
-  { name: "PenTool", icon: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" },
-  { name: "Video", icon: "M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" },
-  { name: "Mic", icon: "M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" },
-  { name: "Sparkles", icon: "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" },
-];
 const LAYOUT_OPTIONS = [
   { value: "CLASSIC" as const, label: "Classic Grid", icon: "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zm0 9.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25h2.25A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zm0 9.75a2.25 2.25 0 012.25-2.25h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" },
   { value: "MINIMAL" as const, label: "Minimal List", icon: "M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" },
@@ -69,6 +59,70 @@ import type {
 /* ─── Helpers ────────────────────────────────────────── */
 function sorted(cps: Checkpoint[]): Checkpoint[] { return [...cps].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)); }
 
+const VALID_TABS = ["profile", "links", "projects", "skills", "appearance"] as const;
+type Tab = typeof VALID_TABS[number];
+const TAB_LABELS: Record<Tab, string> = { profile: "Profile", links: "Links", projects: "Projects", skills: "Skills", appearance: "Appearance" };
+
+function moveItem<T>(list: T[], from: number, to: number): T[] {
+  if (to < 0 || to >= list.length) return list;
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
+/* Reordering was drag-only, which no keyboard or screen reader can do. */
+function MoveButtons({ onMove, index, count, label }: { onMove: (to: number) => void; index: number; count: number; label: string }) {
+  return (
+    <span className={css.moveStack}>
+      <button type="button" onClick={e => { e.stopPropagation(); onMove(index - 1); }} disabled={index === 0}
+        aria-label={`Move ${label} up`} className={css.moveBtn}>
+        <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true" width={12} height={12}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"/></svg>
+      </button>
+      <button type="button" onClick={e => { e.stopPropagation(); onMove(index + 1); }} disabled={index === count - 1}
+        aria-label={`Move ${label} down`} className={css.moveBtn}>
+        <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true" width={12} height={12}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+      </button>
+    </span>
+  );
+}
+
+/* Destructive confirmation without a blocking window.confirm(). Press is slow
+   and deliberate; release snaps back fast. Sliding off the button cancels. */
+function HoldToDelete({ onConfirm, label = "Delete Project" }: { onConfirm: () => void; label?: string }) {
+  const [holding, setHolding] = useState(false);
+  const timer = useRef<NodeJS.Timeout | null>(null);
+
+  const start = () => {
+    if (timer.current) return;
+    setHolding(true);
+    timer.current = setTimeout(() => { timer.current = null; setHolding(false); onConfirm(); }, 1600);
+  };
+  const cancel = () => {
+    setHolding(false);
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+  };
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  return (
+    <button
+      type="button"
+      data-holding={holding}
+      onPointerDown={start}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      onKeyDown={e => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); start(); } }}
+      onKeyUp={cancel}
+      onBlur={cancel}
+      className="hold-target btn btn--danger btn--sm"
+    >
+      <span className="hold-fill" aria-hidden="true" />
+      <span style={{ position: "relative" }}>{holding ? "Keep holding…" : label}</span>
+    </button>
+  );
+}
+
 const defaultProfile: Profile = { fullName: "", title: "", bio: "", location: "", username: "", avatarUrl: "", showAvatar: true, theme: DEFAULT_THEME, socialLinks: [], socialLinksLayout: 'ICONS', userInfoLayout: 'LEFT', showLinks: true, showProjects: true, showSkills: true, portfolioVisibility: "ALL", layoutStyle: "CLASSIC", skills: [], userId: "" };
 
 /* ═════════════════════════════════════════════════════════ */
@@ -76,14 +130,15 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const VALID_TABS = ["profile", "links", "projects", "skills", "appearance"] as const;
-  type Tab = typeof VALID_TABS[number];
-  const [activeTab, setActiveTab] = useState<Tab>(() => {
+  const [activeTab, setActiveTab] = useState<Tab>("projects");
+  // Read after mount. Reading localStorage during the first render makes the
+  // server's HTML and the client's first render disagree — a hydration mismatch.
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("viefolio-active-tab");
-      return (VALID_TABS as readonly string[]).includes(saved ?? "") ? (saved as Tab) : "projects";
-    } catch { return "projects"; }
-  });
+      if ((VALID_TABS as readonly string[]).includes(saved ?? "")) setActiveTab(saved as Tab);
+    } catch { /* ignore */ }
+  }, []);
   const switchTab = (tab: Tab) => { setActiveTab(tab); try { localStorage.setItem("viefolio-active-tab", tab); } catch { /* ignore */ } };
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -99,8 +154,25 @@ export default function DashboardPage() {
     toastTimer.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
+  // A toast that expires in a background tab was never actually read.
+  useEffect(() => {
+    if (!toast) return;
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (toastTimer.current) { clearTimeout(toastTimer.current); toastTimer.current = null; }
+      } else if (!toastTimer.current) {
+        toastTimer.current = setTimeout(() => setToast(null), 3500);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [toast]);
+
   // Profile state
   const [profile, setProfile] = useState<Profile>(defaultProfile);
+  // Serialized profile that Firestore is known to already hold. null until the
+  // first snapshot arrives, which keeps autosave from firing on mount.
+  const lastSavedRef = useRef<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -117,6 +189,9 @@ export default function DashboardPage() {
   const [deleteCode, setDeleteCode] = useState("");
   const [deleteCodeSent, setDeleteCodeSent] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Set the moment deletion succeeds. The profile listener is still live and
+  // will fire once with a missing doc — without this it reads as "new user".
+  const deletedRef = useRef(false);
   const [deleteError, setDeleteError] = useState("");
 
   // Projects state
@@ -164,15 +239,79 @@ export default function DashboardPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [editLightbox, showAccountPanel, pwSaving, showThemeModal, showReorder, showDeleteModal, deleting, showMobilePreview, editingProject]);
 
+  const [needsVerify, setNeedsVerify] = useState(false);
+  const [verifySending, setVerifySending] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyOpen, setVerifyOpen] = useState(false);
+
   /* ─── Auth ─────────────────────────────────────────── */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) router.replace("/login");
-      else setUser(u);
+      else {
+        setUser(u);
+        setNeedsVerify(!u.emailVerified && u.providerData.some(p => p.providerId === "password"));
+      }
       setAuthLoading(false);
     });
     return () => unsub();
   }, [router]);
+
+  async function sendVerifyCode() {
+    if (!user) return;
+    setVerifySending(true);
+    try {
+      const res = await fetch("/api/password-otp/request", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "EMAIL_VERIFY" }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error);
+      setVerifyOpen(true);
+      showToast("Code sent — check your email.", "success");
+    } catch (err) {
+      showToast(err instanceof Error && err.message ? err.message : "Couldn't send the code.");
+    } finally {
+      setVerifySending(false);
+    }
+  }
+
+  async function confirmVerifyCode() {
+    if (!user) return;
+    setVerifySending(true);
+    try {
+      const res = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ code: verifyCode }),
+      });
+      if (!res.ok) {
+        showToast((await res.json().catch(() => ({}))).error || "Couldn't verify that code.");
+        return;
+      }
+      // Refresh the token so the rules see email_verified on the next write.
+      await user.getIdToken(true);
+      setNeedsVerify(false);
+      setVerifyOpen(false);
+      setVerifyCode("");
+      showToast("Email verified — your portfolio is live.", "success");
+    } catch {
+      showToast("Network error. Please try again.");
+    } finally {
+      setVerifySending(false);
+    }
+  }
+
+  /* ─── Email verification state ─────────────────────
+     onAuthStateChanged hands back a cached user, and its emailVerified can be
+     stale (it was for every account verified outside this browser). Reload
+     before gating on it. */
+  useEffect(() => {
+    if (!user) return;
+    user.reload()
+      .then(() => setNeedsVerify(!user.emailVerified && user.providerData.some(p => p.providerId === "password")))
+      .catch(() => {});
+  }, [user]);
 
   /* ─── Device session + own-device visit exclusion ──── */
   useEffect(() => {
@@ -185,13 +324,17 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     const unsub = onSnapshot(doc(db, "profiles", user.uid), (snap) => {
+      // Mid-deletion the server wipes this doc; nothing it reports is meaningful.
+      if (deletedRef.current) return;
       if (snap.exists()) {
         const d = snap.data();
         // Migrate legacy themeColor → theme object
-        const legacyCard = d.theme?.colors?.card ?? d.theme?.colors?.projectCard ?? '#f8f9fa';
+        const legacyCard = d.theme?.colors?.card ?? d.theme?.colors?.projectCard ?? DEFAULT_THEME.colors.card;
         // Every optional theme field needs a concrete default — Firestore
         // rejects writes containing undefined, which would break all saves.
-        const migratedTheme: Theme = d.theme ? { preset: d.theme.preset ?? 'MINIMAL', colors: { background: d.theme.colors?.background ?? '#ffffff', card: legacyCard, accent: d.theme.colors?.accent ?? (d.themeColor ?? '#6366f1'), text: d.theme.colors?.text ?? '#0f172a', descriptionColor: d.theme.colors?.descriptionColor ?? '#64748b' }, texture: d.theme.texture ?? 'NONE', fontFamily: d.theme.fontFamily ?? 'SANS', cardStyle: d.theme.cardStyle ?? 'FLAT', buttonStyle: d.theme.buttonStyle ?? 'ROUNDED' } : { ...DEFAULT_THEME, colors: { ...DEFAULT_THEME.colors, accent: d.themeColor ?? '#6366f1' } };
+        // 'SOFT' was removed with the old lavender palette — fold it into MINIMAL.
+        const storedPreset = d.theme?.preset === 'SOFT' ? 'MINIMAL' : d.theme?.preset;
+        const migratedTheme: Theme = d.theme ? { preset: storedPreset ?? 'MINIMAL', colors: { background: d.theme.colors?.background ?? DEFAULT_THEME.colors.background, card: legacyCard, accent: d.theme.colors?.accent ?? (d.themeColor ?? DEFAULT_ACCENT), text: d.theme.colors?.text ?? DEFAULT_THEME.colors.text, descriptionColor: d.theme.colors?.descriptionColor ?? DEFAULT_THEME.colors.descriptionColor }, texture: d.theme.texture ?? 'NONE', fontFamily: d.theme.fontFamily ?? 'SANS', cardStyle: d.theme.cardStyle ?? 'FLAT', buttonStyle: d.theme.buttonStyle ?? 'ROUNDED' } : { ...DEFAULT_THEME, colors: { ...DEFAULT_THEME.colors, accent: d.themeColor ?? DEFAULT_ACCENT } };
         // Migrate legacy socialLinks { github, linkedin, twitter } → SocialLink[]
         let migratedLinks: SocialLink[] = [];
         if (Array.isArray(d.socialLinks)) {
@@ -204,7 +347,7 @@ export default function DashboardPage() {
           if (sl.twitter) migratedLinks.push({ id: crypto.randomUUID(), type: 'TWITTER', title: 'Twitter', url: sl.twitter, visible: true });
         }
         savedUsernameRef.current = d.username ?? "";
-        setProfile({
+        const next: Profile = {
           fullName: d.fullName ?? "", title: d.title ?? "", bio: d.bio ?? "",
           location: d.location ?? "", username: d.username ?? "",
           avatarUrl: d.avatarUrl ?? "", showAvatar: d.showAvatar ?? true,
@@ -217,16 +360,24 @@ export default function DashboardPage() {
           showSkills: d.showSkills ?? true,
           portfolioVisibility: d.portfolioVisibility ?? "ALL",
           layoutStyle: d.layoutStyle === 'LINK_IN_BIO' ? 'CLASSIC' : (d.layoutStyle ?? "CLASSIC"),
-          accountType: d.accountType,
+          // Saved as null (Firestore rejects undefined) — normalize it back, or
+          // autosave sees null !== undefined and re-saves on a loop forever.
+          accountType: d.accountType ?? undefined,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           skills: (d.skills ?? []).map((s: any) => ({ id: s.id ?? crypto.randomUUID(), name: s.name ?? "", level: s.level ?? 50, visible: s.visible ?? true })),
           userId: user.uid,
-        });
+        };
+        // Autosave compares against this. Marking the server's own echo as
+        // "already saved" is what stops save → snapshot → save from looping.
+        lastSavedRef.current = JSON.stringify(next);
+        setProfile(next);
         if (!d.accountType) setShowOnboarding(true);
         else setShowOnboarding(false);
       } else {
         savedUsernameRef.current = "";
-        setProfile({ ...defaultProfile, userId: user.uid });
+        const blank = { ...defaultProfile, userId: user.uid };
+        lastSavedRef.current = JSON.stringify(blank);
+        setProfile(blank);
         setShowOnboarding(true);
       }
     }, (err) => console.debug("profile listener closed:", err.code));
@@ -282,9 +433,15 @@ export default function DashboardPage() {
           checkpoints: (data.checkpoints ?? []).map((cp: any, idx: number) => ({ id: cp.id ?? `cp-${idx}`, title: cp.title ?? "", percentage: cp.percentage ?? 0, isCompleted: cp.isCompleted ?? false, orderIndex: cp.orderIndex ?? idx })),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           links: (data.links ?? []).map((l: any) => ({ id: l.id ?? crypto.randomUUID(), type: l.type ?? "WEBSITE", url: l.url ?? l.link ?? "#" })),
+          // Both were written but never read back, so every snapshot reset them
+          // to undefined — which is what made the first visibility click look
+          // like it did nothing, and lost the saved reorder.
+          visible: data.visible ?? true,
+          orderIndex: data.orderIndex ?? 0,
           userId: data.userId ?? "",
         };
       });
+      docs.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
       setProjects(docs);
       if (docs.length > 0 && !docs.find(d => d.id === selectedId)) setSelectedId(docs[0].id);
     }, (err) => console.debug("projects listener closed:", err.code));
@@ -432,6 +589,26 @@ export default function DashboardPage() {
     }
   }, [user, profile, showToast]);
 
+  /* ─── Autosave ─────────────────────────────────────
+     Edits commit themselves ~1s after you stop changing things, so the panes
+     don't need Save buttons. */
+  useEffect(() => {
+    if (!user || lastSavedRef.current === null) return;
+    // ponytail: dirty-check is JSON.stringify, so it's key-order sensitive. It
+    // holds because every profile object descends from the listener's shape.
+    // If a future edit builds a Profile from scratch, switch to a field compare.
+    const snapshot = JSON.stringify(profile);
+    if (snapshot === lastSavedRef.current) return;
+    // A pending or taken username would fail the save transaction and toast on
+    // every keystroke — hold until the check settles.
+    if (usernameStatus === "checking" || usernameStatus === "taken") return;
+    const t = setTimeout(() => {
+      lastSavedRef.current = snapshot;
+      saveProfile();
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [profile, user, usernameStatus, saveProfile]);
+
   /* ─── Save Edited Project ──────────────────────────── */
   async function saveEditedProject() {
     if (!editingProject) return;
@@ -471,7 +648,6 @@ export default function DashboardPage() {
 
   /* ─── Delete Project ──────────────────────────────── */
   async function deleteProject(projectId: string) {
-    if (!confirm("Are you sure you want to delete this project?")) return;
     try {
       if (!projectId.startsWith("new_")) {
         await deleteDoc(doc(db, "projects", projectId));
@@ -513,6 +689,10 @@ export default function DashboardPage() {
     if (!user) return;
     setDeleting(true);
     setDeleteError("");
+    // Before the request, not after: the server wipes the profile doc while
+    // this is still in flight, and the live listener sees that missing doc as
+    // a brand-new user and opens onboarding. Cleared again if we don't delete.
+    deletedRef.current = true;
     try {
       const idToken = await user.getIdToken();
       const res = await fetch("/api/delete-account", {
@@ -521,11 +701,16 @@ export default function DashboardPage() {
         body: JSON.stringify({ code: deleteCode }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setDeleteError(data.error ?? "Couldn't delete the account. Try again."); return; }
+      if (!res.ok) {
+        deletedRef.current = false;
+        setDeleteError(data.error ?? "Couldn't delete the account. Try again.");
+        return;
+      }
       // Server removed the auth user and all data; drop the local session
       await signOut(auth).catch(() => {});
       router.replace("/");
     } catch {
+      deletedRef.current = false;
       setDeleteError("Something went wrong deleting your account. Please try again.");
     } finally {
       setDeleting(false);
@@ -592,35 +777,67 @@ export default function DashboardPage() {
   const displayTitle = profile.title || "Developer & Creator";
 
   if (authLoading) return (
-    <div className="h-screen flex items-center justify-center bg-white">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-[#94a3b8]">Loading…</span>
+    <div className={css.boot}>
+      <div className={css.bootInner}>
+        <div className={css.ringSpinner} />
+        <span className={css.metaSm}>Loading…</span>
       </div>
     </div>
   );
   if (!user) return null;
 
+  if (needsVerify) return (
+    <div className={css.boot}>
+      <div className={`${css.bootInner} ${css.verifyGate}`}>
+        <h1>Verify your email</h1>
+        <p className={css.metaSm}>
+          Enter the 6-digit code we sent to <strong>{user.email}</strong> to unlock your dashboard.
+        </p>
+        {verifyOpen ? (
+          <>
+            <input
+              inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6-digit code"
+              value={verifyCode} onChange={e => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+              className={`input ${css.codeInput}`} autoFocus
+            />
+            <button type="button" className="btn btn--primary btn--block" onClick={confirmVerifyCode} disabled={verifySending || verifyCode.length !== 6}>
+              {verifySending ? "Verifying…" : "Verify email"}
+            </button>
+            <button type="button" className="btn btn--quiet btn--sm btn--block" onClick={sendVerifyCode} disabled={verifySending}>
+              Didn&apos;t get it? Resend
+            </button>
+          </>
+        ) : (
+          <button type="button" className="btn btn--primary btn--block" onClick={sendVerifyCode} disabled={verifySending}>
+            {verifySending ? "Sending…" : "Send me a code"}
+          </button>
+        )}
+        <button type="button" className="btn btn--quiet btn--sm btn--block" onClick={handleSignOut}>
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+
   /* ═══ RENDER ═══════════════════════════════════════════ */
   return (
     <MotionConfig reducedMotion="user">
-    <div className="h-screen flex flex-col bg-white">
+    <div className={css.app}>
       {/* ─── Toast ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, transform: "translateX(-50%) translateY(12px)" }}
+            animate={{ opacity: 1, transform: "translateX(-50%) translateY(0px)" }}
+            exit={{ opacity: 0, transform: "translateX(-50%) translateY(6px)" }}
             transition={{ type: "spring", duration: 0.3, bounce: 0 }}
-            style={{ x: "-50%" }}
-            className={`fixed bottom-6 left-1/2 z-[110] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-sm font-medium max-w-[90vw] ${toast.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700"}`}
+            className={css.toast} data-tone={toast.type}
             role="status"
           >
             {toast.type === "success" ? (
-              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width={16} height={16} className="noshrink"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
             ) : (
-              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+              <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16} className="noshrink"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
             )}
             {toast.msg}
           </motion.div>
@@ -635,73 +852,76 @@ export default function DashboardPage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
+          className={css.drawerScrim}
           onClick={() => !pwSaving && setShowAccountPanel(false)}
         >
           <motion.div
-            initial={{ x: 420 }}
-            animate={{ x: 0 }}
-            exit={{ x: 420 }}
-            transition={{ type: "spring", stiffness: 340, damping: 34 }}
+            initial={{ transform: "translateX(100%)" }}
+            animate={{ transform: "translateX(0%)" }}
+            exit={{ transform: "translateX(100%)" }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Account and insights"
             onClick={e => e.stopPropagation()}
-            className="absolute right-0 top-0 h-full w-full max-w-[420px] bg-white shadow-2xl flex flex-col"
+            className={css.drawer}
           >
             {/* Panel header */}
-            <div className="shrink-0 px-6 pt-6 pb-4 border-b border-[#f1f5f9] flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full overflow-hidden shrink-0">
+            <div className={css.drawerHead}>
+              <div className={css.avatarBtn}>
                 {profile.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                  <img src={profile.avatarUrl} alt={displayName} className={css.avatarImg} />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white text-sm font-bold">{displayName.charAt(0).toUpperCase()}</div>
+                  <div className={css.avatarLetter}>{displayName.charAt(0).toUpperCase()}</div>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#0f172a] truncate">{displayName}</p>
-                <p className="text-xs text-[#94a3b8] truncate">{user?.email}</p>
+              <div className="grow">
+                <p className={`${css.strongSm} truncate`}>{displayName}</p>
+                <p className={`${css.metaXs} truncate`}>{user?.email}</p>
               </div>
-              <button onClick={() => !pwSaving && setShowAccountPanel(false)} className="p-2 rounded-lg hover:bg-[#f1f5f9] transition-colors">
-                <svg className="w-4 h-4 text-[#64748b]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              <button onClick={() => !pwSaving && setShowAccountPanel(false)} className={css.iconBtn}>
+                <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink-2)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className={css.drawerBody}>
               {/* ── Insights ── */}
               <div>
-                <h3 className="text-sm font-semibold text-[#0f172a] mb-1">Insights</h3>
-                <p className="text-[11px] text-[#94a3b8] mb-3">Portfolio visits — your own devices aren&apos;t counted.</p>
+                <h3 className={css.strongSm}>Insights</h3>
+                <p className={css.metaXs}>Portfolio visits — your own devices aren&apos;t counted.</p>
                 {visitStats === null ? (
-                  <div className="space-y-3 animate-pulse">
-                    <div className="grid grid-cols-3 gap-3">
-                      {[0, 1, 2].map(i => <div key={i} className="h-[72px] rounded-xl bg-[#f1f5f9]" />)}
+                  <div className="col">
+                    <div className="grid-3">
+                      {[0, 1, 2].map(i => <div key={i} className={`skeleton ${css.skeletonStat}`} />)}
                     </div>
-                    <div className="h-36 rounded-xl bg-[#f1f5f9]" />
+                    <div className={`skeleton ${css.skeletonChart}`} />
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
+                  <div className="col">
+                    <div className="grid-3">
                       {[
                         { label: "Total", value: visitStats.totalVisits },
                         { label: "Today", value: visitStats.daily?.[todayKey()] ?? 0 },
                         { label: "7 days", value: dailySeries(visitStats.daily ?? {}, 7).reduce((s, d) => s + d.count, 0) },
                       ].map(card => (
-                        <div key={card.label} className="rounded-xl border border-[#f1f5f9] bg-white p-3.5 shadow-sm">
-                          <p className="text-xl font-bold text-[#0f172a] tabular-nums">{card.value}</p>
-                          <p className="text-[10px] text-[#94a3b8] mt-0.5">{card.label}</p>
+                        <div key={card.label} className={css.stat}>
+                          <p className={css.statValue}>{card.value}</p>
+                          <p className={css.meta2Xs}>{card.label}</p>
                         </div>
                       ))}
                     </div>
-                    <div className="rounded-xl border border-[#f1f5f9] bg-white p-4 shadow-sm">
+                    <div className={css.chart}>
                       {(() => {
                         const series = dailySeries(visitStats.daily ?? {}, 7);
                         const max = Math.max(1, ...series.map(d => d.count));
                         return (
-                          <div className="flex items-end gap-2 h-24">
-                            {series.map(d => (
-                              <div key={d.key} className="flex-1 flex flex-col items-center gap-1">
-                                <span className="text-[9px] text-[#64748b] tabular-nums">{d.count > 0 ? d.count : ""}</span>
-                                <div className="w-full rounded-md transition-all duration-300" style={{ height: `${Math.max(4, (d.count / max) * 64)}px`, background: d.count > 0 ? "linear-gradient(180deg, #6366f1, #8b5cf6)" : "#f1f5f9" }} />
-                                <span className="text-[9px] text-[#94a3b8]">{d.label}</span>
+                          <div className={css.bars}>
+                            {series.map((d, i) => (
+                              <div key={d.key} className={css.barCol}>
+                                <span className={css.barValue}>{d.count > 0 ? d.count : ""}</span>
+                                <div className={`${css.bar} bar-grow`} style={{ height: `${Math.max(4, (d.count / max) * 64)}px`, animationDelay: `${i * 40}ms`, background: d.count > 0 ? "linear-gradient(180deg, var(--ink), var(--ink-3))" : "var(--paper-sunk)" }} />
+                                <span className={css.barLabel}>{d.label}</span>
                               </div>
                             ))}
                           </div>
@@ -714,27 +934,27 @@ export default function DashboardPage() {
 
               {/* ── Devices ── */}
               <div>
-                <h3 className="text-sm font-semibold text-[#0f172a] mb-3">Signed-in devices</h3>
+                <h3 className={css.strongSm}>Signed-in devices</h3>
                 {deviceSessions === null ? (
-                  <div className="space-y-2 animate-pulse">
-                    {[0, 1].map(i => <div key={i} className="h-[58px] rounded-xl bg-[#f1f5f9]" />)}
+                  <div className="col">
+                    {[0, 1].map(i => <div key={i} className={`skeleton ${css.skeletonRow}`} />)}
                   </div>
                 ) : deviceSessions.length === 0 ? (
-                  <p className="text-xs text-[#94a3b8] py-4 text-center border border-dashed border-[#e2e8f0] rounded-xl">No devices recorded yet.</p>
+                  <p className={`${css.metaXs} ${css.emptyNote}`}>No devices recorded yet.</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="col">
                     {deviceSessions.map(session => (
-                      <div key={session.id} className="flex items-center gap-3 rounded-xl border border-[#f1f5f9] bg-white p-3 shadow-sm">
-                        <div className="w-9 h-9 rounded-lg bg-[#eef2ff] flex items-center justify-center shrink-0">
+                      <div key={session.id} className={css.device}>
+                        <div className={css.deviceIcon}>
                           {session.platform === "IOS" ? (
-                            <svg className="w-4 h-4 text-[#6366f1]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>
+                            <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>
                           ) : (
-                            <svg className="w-4 h-4 text-[#6366f1]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/></svg>
+                            <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/></svg>
                           )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-[#0f172a] truncate">{session.deviceModel}{session.osVersion ? ` · ${session.osVersion}` : ""}</p>
-                          <p className="text-[11px] text-[#94a3b8] truncate">
+                        <div className="grow">
+                          <p className={`${css.strongXs} truncate`}>{session.deviceModel}{session.osVersion ? ` · ${session.osVersion}` : ""}</p>
+                          <p className={`${css.metaXs} truncate`}>
                             {[session.location, session.lastSignIn ? new Date(session.lastSignIn.seconds * 1000).toLocaleString("en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ")}
                           </p>
                         </div>
@@ -749,27 +969,27 @@ export default function DashboardPage() {
                 <div>
                   <button
                     onClick={() => setShowPwForm(v => !v)}
-                    className="w-full flex items-center justify-between py-2.5 px-4 rounded-xl border border-[#e2e8f0] text-sm font-semibold text-[#0f172a] hover:bg-[#f8fafc] transition-colors"
+                    className="btn btn--outline btn--block row--between"
                   >
                     Change password
-                    <svg className={`w-4 h-4 text-[#94a3b8] transition-transform duration-200 ${showPwForm ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+                    <svg className={css.chevron} data-open={showPwForm} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
                   </button>
                   {showPwForm && (
-                  <div className="space-y-3 mt-3">
+                  <div className="col">
                     <input type="password" autoComplete="new-password" placeholder="New password (min 6 characters)" value={pwNew} onChange={e => setPwNew(e.target.value)} disabled={pwCodeSent}
-                      className="w-full px-4 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#0f172a] placeholder:text-[#94a3b8] outline-none transition-all focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10"/>
+                      className="input"/>
                     <input type="password" autoComplete="new-password" placeholder="Confirm new password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} disabled={pwCodeSent}
-                      className={`w-full px-4 py-2.5 rounded-xl border bg-white text-sm text-[#0f172a] placeholder:text-[#94a3b8] outline-none transition-all focus:ring-2 focus:ring-[#6366f1]/10 ${pwConfirm && pwConfirm !== pwNew ? "border-red-300 focus:border-red-400" : "border-[#e2e8f0] focus:border-[#6366f1]"}`}/>
-                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                      <input type="checkbox" checked={pwSignOutAll} onChange={e => setPwSignOutAll(e.target.checked)} className="w-4 h-4 rounded accent-[#6366f1]"/>
-                      <span className="text-xs text-[#374151]">Sign out of all other devices</span>
+                      className="input" data-invalid={!!pwConfirm && pwConfirm !== pwNew}/>
+                    <label className={`row ${css.checkLabel}`}>
+                      <input type="checkbox" checked={pwSignOutAll} onChange={e => setPwSignOutAll(e.target.checked)} className="check"/>
+                      <span className={css.metaXs}>Sign out of all other devices</span>
                     </label>
                     {!pwCodeSent ? (
                       <button
                         onClick={requestPasswordCode}
                         disabled={pwSaving || pwNew.length < 6 || pwNew !== pwConfirm}
-                        className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                        className="btn btn--primary btn--block"
+                       
                       >
                         {pwSaving ? "Sending code…" : "Email Me a Verification Code"}
                       </button>
@@ -778,43 +998,43 @@ export default function DashboardPage() {
                         <input
                           inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6-digit code"
                           value={pwCode} onChange={e => setPwCode(e.target.value.replace(/\D/g, ""))}
-                          className="w-full px-4 py-2.5 rounded-xl border border-[#c7d2fe] bg-white text-base text-center font-semibold tracking-[8px] text-[#0f172a] placeholder:tracking-normal placeholder:font-normal placeholder:text-[#94a3b8] outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10"/>
+                          className={`input ${css.codeInput}`}/>
                         <button
                           onClick={confirmPasswordChange}
                           disabled={pwSaving || pwCode.length !== 6}
-                          className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                          className="btn btn--primary btn--block"
+                         
                         >
                           {pwSaving ? "Updating…" : "Confirm & Change Password"}
                         </button>
                         <button onClick={() => { setPwCodeSent(false); setPwCode(""); setPwSuccess(""); }} disabled={pwSaving}
-                          className="w-full py-1.5 text-xs font-medium text-[#6366f1] hover:text-[#4f46e5] transition-colors">
+                          className="btn btn--quiet btn--sm btn--block">
                           Didn&apos;t get it? Edit & resend
                         </button>
                       </>
                     )}
-                    {pwError && <p className="text-xs text-red-500">{pwError}</p>}
-                    {pwSuccess && <p className="text-xs text-emerald-600">{pwSuccess}</p>}
+                    {pwError && <p className={`${css.metaXs} ${css.dangerText}`}>{pwError}</p>}
+                    {pwSuccess && <p className={`${css.metaXs} ${css.successText}`}>{pwSuccess}</p>}
                   </div>
                   )}
                 </div>
               )}
               {!isPasswordUser && (
                 <div>
-                  <h3 className="text-sm font-semibold text-[#0f172a] mb-2">Password</h3>
-                  <p className="text-xs text-[#94a3b8] leading-relaxed">
+                  <h3 className={css.strongSm}>Password</h3>
+                  <p className={css.metaXs}>
                     You sign in with {user?.providerData[0]?.providerId === "apple.com" ? "Apple" : "Google"}, so there&apos;s no Viefolio password to change — your account is secured by your provider.
                   </p>
                 </div>
               )}
 
               {/* ── Danger Zone ── */}
-              <div className="pt-4 border-t border-[#f1f5f9]">
-                <h3 className="text-xs font-semibold text-red-600 mb-1">Danger Zone</h3>
-                <p className="text-[11px] text-[#94a3b8] mb-3">Permanently delete your account, portfolio, projects, and images. This cannot be undone.</p>
+              <div className={css.divideTop}>
+                <h3 className={`${css.strongXs} ${css.dangerText}`}>Danger Zone</h3>
+                <p className={css.metaXs}>Permanently delete your account, portfolio, projects, and images. This cannot be undone.</p>
                 <button
                   onClick={() => { setDeleteConfirmText(""); setDeleteCode(""); setDeleteCodeSent(false); setDeleteError(""); setShowDeleteModal(true); }}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-red-600 border border-red-200 bg-white hover:bg-red-50 transition-colors"
+                  className={`btn btn--danger btn--block ${css.dangerOutline}`}
                 >
                   Delete Account
                 </button>
@@ -836,58 +1056,57 @@ export default function DashboardPage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          className={css.scrim}
           onClick={() => !deleting && setShowDeleteModal(false)}
         >
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-[#e2e8f0]"
+            className={`${css.dialog} ${css.dialogNarrow}`}
             onClick={e => e.stopPropagation()}
           >
-            <div className="p-6">
-              <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center mb-4">
-                <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            <div className={css.dialogBody}>
+              <div className={`${css.emptyIcon} ${css.dangerIcon}`}>
+                <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={20} height={20} style={{ color: "var(--danger)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
               </div>
-              <h3 className="text-base font-semibold text-[#0f172a] mb-1.5">Delete your account?</h3>
-              <p className="text-xs text-[#64748b] leading-relaxed mb-4">
-                This permanently deletes your portfolio{profile.username ? <> at <span className="font-semibold">{profile.username}.viefolio.com</span></> : ""}, all {projects.length} project{projects.length !== 1 ? "s" : ""}, images, and your login. <span className="font-semibold text-red-600">This cannot be undone.</span>
+              <h3 className={css.strongMd}>Delete your account?</h3>
+              <p className={css.metaXs}>
+                This permanently deletes your portfolio{profile.username ? <> at <span className="font-semibold">{profile.username}.viefolio.com</span></> : ""}, all {projects.length} project{projects.length !== 1 ? "s" : ""}, images, and your login. <span className={css.dangerText}>This cannot be undone.</span>
               </p>
-              <label className="block text-xs font-medium text-[#374151] mb-1.5">Type <span className="font-mono font-bold text-red-600">{confirmPhrase}</span> to confirm</label>
+              <label className="label">Type <span className={`mono ${css.dangerText}`}>{confirmPhrase}</span> to confirm</label>
               <input
                 type="text"
                 value={deleteConfirmText}
                 onChange={e => setDeleteConfirmText(e.target.value)}
                 placeholder={confirmPhrase}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all mb-3"
+                className="input"
               />
               {deleteCodeSent && (
                 <>
-                  <label className="block text-xs font-medium text-[#374151] mb-1.5">Enter the 6-digit code we emailed you</label>
+                  <label className="label">Enter the 6-digit code we emailed you</label>
                   <input
                     inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6-digit code"
                     value={deleteCode}
                     onChange={e => setDeleteCode(e.target.value.replace(/\D/g, ""))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-red-200 bg-white text-base text-center font-semibold tracking-[8px] text-[#0f172a] placeholder:tracking-normal placeholder:font-normal placeholder:text-[#cbd5e1] outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-all mb-3"
+                    className={`input ${css.codeInput}`}
                   />
                 </>
               )}
               {!deleteCodeSent && (
-                <p className="text-[11px] text-[#94a3b8] mb-3">We&apos;ll email a verification code to confirm it&apos;s really you — an open session alone can&apos;t delete this account.</p>
+                <p className={css.metaXs}>We&apos;ll email a verification code to confirm it&apos;s really you — an open session alone can&apos;t delete this account.</p>
               )}
               {deleteError && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-100 mb-3">
-                  <p className="text-xs text-red-600">{deleteError}</p>
+                <div className="note">
+                  <p className={`${css.metaXs} ${css.dangerText}`}>{deleteError}</p>
                 </div>
               )}
-              <div className="flex items-center gap-2 mt-1">
-                <button onClick={() => setShowDeleteModal(false)} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#64748b] border border-[#e2e8f0] hover:bg-[#f8fafc] transition-colors disabled:opacity-50">Cancel</button>
+              <div className="row">
+                <button onClick={() => setShowDeleteModal(false)} disabled={deleting} className="btn btn--outline grow">Cancel</button>
                 <button
                   onClick={deleteCodeSent ? deleteAccount : requestDeleteCode}
                   disabled={!canDelete || (deleteCodeSent && deleteCode.length !== 6)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="btn btn--dangerSolid grow"
                 >
                   {deleting ? (deleteCodeSent ? "Deleting…" : "Sending code…") : (deleteCodeSent ? "Delete Forever" : "Email Me a Code")}
                 </button>
@@ -906,38 +1125,37 @@ export default function DashboardPage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
+          className={css.scrim}
           onClick={() => setEditingProject(null)}
         >
           <motion.div
             initial={{ opacity: 0, y: 24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto border border-[#e2e8f0]"
+            className={css.dialog}
             onClick={e => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b border-[#f1f5f9] flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[#0f172a]">Edit Project</h3>
-              <button onClick={() => setEditingProject(null)} className="w-8 h-8 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8] hover:text-[#475569] transition-colors">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            <div className={css.dialogHead}>
+              <h3 className={css.strongMd}>Edit Project</h3>
+              <button onClick={() => setEditingProject(null)} className={css.iconBtn}>
+                <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={20} height={20}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className={css.dialogBody}>
               {/* Title */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Project Title</label>
-                <input type="text" value={editingProject.title} onChange={e => setEditingProject({...editingProject, title: e.target.value})} placeholder="e.g. My Awesome App" className="w-full px-4 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10 transition-all"/>
+                <label className="label">Project Title</label>
+                <input type="text" value={editingProject.title} onChange={e => setEditingProject({...editingProject, title: e.target.value})} placeholder="e.g. My Awesome App" className="input"/>
               </div>
               {/* Description */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Description</label>
-                <textarea value={editingProject.description} onChange={e => setEditingProject({...editingProject, description: e.target.value})} placeholder="Describe your project…" rows={2} className="w-full px-4 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10 resize-none transition-all"/>
+                <label className="label">Description</label>
+                <textarea value={editingProject.description} onChange={e => setEditingProject({...editingProject, description: e.target.value})} placeholder="Describe your project…" rows={2} className="textarea"/>
               </div>
               {/* Status */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Status</label>
-                <div className="flex gap-2">
+                <label className="label">Status</label>
+                <div className="row">
                   {([{v:"IN_PROGRESS",l:"In Progress"},{v:"RELEASED",l:"Completed"}] as const).map(s => (
                     <button key={s.v} onClick={() => {
                       const prev = editingProject.status;
@@ -950,73 +1168,73 @@ export default function DashboardPage() {
                         nextCps = backupCheckpoints.current.map(c => ({...c}));
                       }
                       setEditingProject({...editingProject, status: next, checkpoints: nextCps});
-                    }} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${editingProject.status===s.v ? "border-[#6366f1] bg-[#eef2ff] text-[#6366f1]" : "border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]"}`}>{s.l}</button>
+                    }} className="chip chip--grow" data-active={editingProject.status===s.v}>{s.l}</button>
                   ))}
                 </div>
               </div>
               {/* Project Type */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Project Type</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="label">Project Type</label>
+                <div className="row row--wrap">
                   {([
                     {v:"SOLO",l:"Solo"},{v:"TEAM",l:"Team"},{v:"PERSONAL",l:"Personal"},
                     {v:"FREELANCE",l:"Freelance"},{v:"CLIENT",l:"Client"},{v:"COMMISSION",l:"Commission"},
                     {v:"OPEN_SOURCE",l:"Open Source"},{v:"INTERNSHIP",l:"Internship"},{v:"ACADEMIC",l:"Academic"}
                   ] as const).map(t => (
-                    <button key={t.v} onClick={() => setEditingProject({...editingProject, projectType: t.v})} className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${editingProject.projectType===t.v ? "border-[#6366f1] bg-[#eef2ff] text-[#6366f1]" : "border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]"}`}>{t.l}</button>
+                    <button key={t.v} onClick={() => setEditingProject({...editingProject, projectType: t.v})} className="chip" data-active={editingProject.projectType===t.v}>{t.l}</button>
                   ))}
                 </div>
               </div>
               {/* Date Range */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Date Range</label>
-                <div className="flex items-center gap-2">
-                  <input type="date" value={editingProject.startDate} onChange={e => setEditingProject({...editingProject, startDate: e.target.value})} className="flex-1 px-3 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-xs text-[#0f172a] outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10 transition-all"/>
-                  <span className="text-xs text-[#94a3b8]">to</span>
+                <label className="label">Date Range</label>
+                <div className="row">
+                  <input type="date" value={editingProject.startDate} onChange={e => setEditingProject({...editingProject, startDate: e.target.value})} className="input input--sm grow"/>
+                  <span className={css.metaXs}>to</span>
                   {editingProject.endDate === "present" ? (
-                    <div className="flex-1 px-3 py-2.5 rounded-xl border border-[#6366f1] bg-[#eef2ff] text-xs font-semibold text-[#6366f1] text-center">Present</div>
+                    <div className={`input input--sm grow ${css.codePreview}`}>Present</div>
                   ) : (
-                    <input type="date" value={editingProject.endDate} onChange={e => setEditingProject({...editingProject, endDate: e.target.value})} className="flex-1 px-3 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-xs text-[#0f172a] outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10 transition-all"/>
+                    <input type="date" value={editingProject.endDate} onChange={e => setEditingProject({...editingProject, endDate: e.target.value})} className="input input--sm grow"/>
                   )}
                 </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <button onClick={() => setEditingProject({...editingProject, endDate: editingProject.endDate === "present" ? "" : "present"})} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold border transition-all ${editingProject.endDate === "present" ? "border-[#6366f1] bg-[#eef2ff] text-[#6366f1]" : "border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]"}`}>Ongoing / Present</button>
+                <div className="row">
+                  <button onClick={() => setEditingProject({...editingProject, endDate: editingProject.endDate === "present" ? "" : "present"})} className="chip chip--sm" data-active={editingProject.endDate === "present"}>Ongoing / Present</button>
                 </div>
               </div>
               {/* Image Upload */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Project Image</label>
-                <div className="flex items-center gap-3">
+                <label className="label">Project Image</label>
+                <div className="row">
                   {editingProject.imageUrl ? (
-                    <div className="relative w-20 h-14 rounded-lg overflow-hidden border border-[#e2e8f0] group cursor-pointer" onClick={() => setEditLightbox(editingProject.imageUrl)}>
-                      <img src={editingProject.imageUrl} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"/>
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"><svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"/></svg></div>
+                    <div className={`${css.thumbBox} img-zone`} onClick={() => setEditLightbox(editingProject.imageUrl)}>
+                      <img src={editingProject.imageUrl} alt="" className="zoom-img w-full h-full object-cover"/>
+                      <div className="img-overlay"><svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16} style={{ color: "currentColor" }}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"/></svg></div>
                     </div>
                   ) : (
-                    <div className="w-20 h-14 rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] flex items-center justify-center text-[#94a3b8]">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91M6.75 12.75h.008v.008H6.75v-.008z"/></svg>
+                    <div className={css.thumbBox}>
+                      <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={20} height={20}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91M6.75 12.75h.008v.008H6.75v-.008z"/></svg>
                     </div>
                   )}
-                  <label className={`px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs font-medium text-[#64748b] hover:bg-[#f8fafc] cursor-pointer transition-all ${projectImgUploading ? "opacity-50 pointer-events-none" : ""}`}>
+                  <label className="chip chip--file" aria-disabled={projectImgUploading}>
                     {projectImgUploading ? "Uploading…" : "Upload Image"}
-                    <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadProjectImage(f, editingProject.id); }}/>
+                    <input type="file" accept="image/*" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) uploadProjectImage(f, editingProject.id); }}/>
                   </label>
                 </div>
               </div>
               {/* Show Image + Icon Selector */}
-              <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#f8fafc] border border-[#f1f5f9]">
-                <div><p className="text-xs font-medium text-[#374151]">Show project image</p><p className="text-[10px] text-[#94a3b8]">Display cover image on portfolio</p></div>
-                <button onClick={() => setEditingProject({...editingProject, showImage: !editingProject.showImage})} className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${editingProject.showImage ? "bg-[#6366f1]" : "bg-[#d1d5db]"}`}>
-                  <span className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${editingProject.showImage ? "translate-x-[16px]" : "translate-x-0"}`}/>
+              <div className={css.toggleRow}>
+                <div><p className={css.strongXs}>Show project image</p><p className={css.meta2Xs}>Display cover image on portfolio</p></div>
+                <button onClick={() => setEditingProject({...editingProject, showImage: !editingProject.showImage})} className="switch" data-on={editingProject.showImage} role="switch" aria-checked={!!editingProject.showImage} aria-label="Show project image">
+                  <span className="switch__knob"/>
                 </button>
               </div>
               {/* Icon (fallback when no image) */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Icon <span className="text-[#94a3b8] font-normal">(shown when image is hidden)</span></label>
-                <div className="flex gap-2">
+                <label className="label">Icon <span className="quiet">(shown when image is hidden)</span></label>
+                <div className="row">
                   {PROJECT_ICONS.map(ic => (
-                    <button key={ic.name} onClick={() => setEditingProject({...editingProject, icon: ic.name})} className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${editingProject.icon === ic.name ? "border-[#6366f1] bg-[#eef2ff] text-[#6366f1]" : "border-[#e2e8f0] text-[#94a3b8] hover:text-[#6366f1] hover:bg-[#f8fafc]"}`} title={ic.name}>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d={ic.icon}/></svg>
+                    <button key={ic.name} onClick={() => setEditingProject({...editingProject, icon: ic.name})} className="chip chip--icon" data-active={editingProject.icon === ic.name} title={ic.name}>
+                      <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={20} height={20}><path strokeLinecap="round" strokeLinejoin="round" d={ic.icon}/></svg>
                     </button>
                   ))}
                 </div>
@@ -1024,26 +1242,26 @@ export default function DashboardPage() {
 
               {/* Tech Stack */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Tech Stack <span className="text-[#94a3b8] font-normal">(comma separated)</span></label>
-                <input type="text" defaultValue={editingProject.techStack.map(t => t.technologyName).join(", ")} onBlur={e => { const names = e.target.value.split(",").map(s => s.trim()).filter(Boolean); setEditingProject({...editingProject, techStack: names.map((n, i) => ({ id: editingProject.techStack[i]?.id ?? crypto.randomUUID(), technologyName: n }))}); }} placeholder="e.g. React, Figma, Final Cut Pro, Notion" className="w-full px-4 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10 transition-all"/>
+                <label className="label">Tech Stack <span className="quiet">(comma separated)</span></label>
+                <input type="text" defaultValue={editingProject.techStack.map(t => t.technologyName).join(", ")} onBlur={e => { const names = e.target.value.split(",").map(s => s.trim()).filter(Boolean); setEditingProject({...editingProject, techStack: names.map((n, i) => ({ id: editingProject.techStack[i]?.id ?? crypto.randomUUID(), technologyName: n }))}); }} placeholder="e.g. React, Figma, Final Cut Pro, Notion" className="input"/>
               </div>
               {/* Checkpoints */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-medium text-[#374151]">Checkpoints</label>
-                  <button onClick={() => setEditingProject({...editingProject, checkpoints: [...editingProject.checkpoints, { id: crypto.randomUUID(), title: "", percentage: 0, isCompleted: false, orderIndex: editingProject.checkpoints.length }]})} className="text-[10px] font-semibold text-[#6366f1] hover:text-[#4f46e5]">+ Add</button>
+                <div className="row row--between">
+                  <label className="label">Checkpoints</label>
+                  <button onClick={() => setEditingProject({...editingProject, checkpoints: [...editingProject.checkpoints, { id: crypto.randomUUID(), title: "", percentage: 0, isCompleted: false, orderIndex: editingProject.checkpoints.length }]})} className={css.linkXs}>+ Add</button>
                 </div>
-                <div className="space-y-2">
+                <div className="col">
                   {sorted(editingProject.checkpoints).map((cp) => (
-                    <div key={cp.id} className="flex items-center gap-2">
-                      <button onClick={() => { const cps = editingProject.checkpoints.map(c => c.id === cp.id ? {...c, isCompleted: !c.isCompleted} : c); setEditingProject({...editingProject, checkpoints: cps}); }} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${cp.isCompleted ? "bg-[#22c55e] border-[#22c55e]" : "border-[#d1d5db] hover:border-[#6366f1]"}`}>
-                        {cp.isCompleted && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>}
+                    <div key={cp.id} className="row">
+                      <button onClick={() => { const cps = editingProject.checkpoints.map(c => c.id === cp.id ? {...c, isCompleted: !c.isCompleted} : c); setEditingProject({...editingProject, checkpoints: cps}); }} className={css.tickBox} data-on={cp.isCompleted} aria-label={cp.isCompleted ? "Mark incomplete" : "Mark complete"}>
+                        {cp.isCompleted && <svg fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" width={12} height={12} style={{ color: "currentColor" }}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>}
                       </button>
-                      <input type="text" value={cp.title} onChange={e => { const cps = [...editingProject.checkpoints]; const i = cps.findIndex(c => c.id === cp.id); cps[i] = {...cps[i], title: e.target.value}; setEditingProject({...editingProject, checkpoints: cps}); }} placeholder="Checkpoint title" className={`flex-1 px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] transition-all ${cp.isCompleted ? "line-through text-[#94a3b8]" : ""}`}/>
-                      <input type="number" value={cp.percentage} onChange={e => { const cps = [...editingProject.checkpoints]; const i = cps.findIndex(c => c.id === cp.id); cps[i] = {...cps[i], percentage: Number(e.target.value)}; setEditingProject({...editingProject, checkpoints: cps}); }} className="w-16 px-2 py-2 rounded-lg border border-[#e2e8f0] text-xs text-center outline-none focus:border-[#6366f1] transition-all" min={0} max={100}/>
-                      <span className="text-[10px] text-[#94a3b8]">%</span>
-                      <button onClick={() => setEditingProject({...editingProject, checkpoints: editingProject.checkpoints.filter(c => c.id !== cp.id)})} className="text-[#94a3b8] hover:text-[#ef4444] transition-colors">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                      <input type="text" value={cp.title} onChange={e => { const cps = [...editingProject.checkpoints]; const i = cps.findIndex(c => c.id === cp.id); cps[i] = {...cps[i], title: e.target.value}; setEditingProject({...editingProject, checkpoints: cps}); }} placeholder="Checkpoint title" className={`input input--sm grow ${cp.isCompleted ? css.done : ""}`}/>
+                      <input type="number" value={cp.percentage} onChange={e => { const cps = [...editingProject.checkpoints]; const i = cps.findIndex(c => c.id === cp.id); cps[i] = {...cps[i], percentage: Number(e.target.value)}; setEditingProject({...editingProject, checkpoints: cps}); }} className={`input input--sm ${css.numField}`} min={0} max={100}/>
+                      <span className={css.meta2Xs}>%</span>
+                      <button onClick={() => setEditingProject({...editingProject, checkpoints: editingProject.checkpoints.filter(c => c.id !== cp.id)})} className={`${css.iconBtn} ${css.iconBtnDanger}`}>
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </button>
                     </div>
                   ))}
@@ -1051,14 +1269,14 @@ export default function DashboardPage() {
               </div>
               {/* Links */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-medium text-[#374151]">Links</label>
-                  <button onClick={() => setEditingProject({...editingProject, links: [...editingProject.links, { id: crypto.randomUUID(), type: "WEBSITE", url: "" }]})} className="text-[10px] font-semibold text-[#6366f1] hover:text-[#4f46e5]">+ Add</button>
+                <div className="row row--between">
+                  <label className="label">Links</label>
+                  <button onClick={() => setEditingProject({...editingProject, links: [...editingProject.links, { id: crypto.randomUUID(), type: "WEBSITE", url: "" }]})} className={css.linkXs}>+ Add</button>
                 </div>
-                <div className="space-y-2">
+                <div className="col">
                   {editingProject.links.map((link) => (
-                    <div key={link.id} className="flex items-center gap-2">
-                      <select value={link.type} onChange={e => { const ls = editingProject.links.map(l => l.id === link.id ? {...l, type: e.target.value} : l); setEditingProject({...editingProject, links: ls}); }} className="w-32 px-2 py-2 rounded-lg border border-[#e2e8f0] text-xs outline-none focus:border-[#6366f1] transition-all">
+                    <div key={link.id} className="row">
+                      <select value={link.type} onChange={e => { const ls = editingProject.links.map(l => l.id === link.id ? {...l, type: e.target.value} : l); setEditingProject({...editingProject, links: ls}); }} className={`select select--sm ${css.typeField}`}>
                         <option value="GITHUB">GitHub</option>
                         <option value="WEBSITE">Website</option>
                         <option value="APP_STORE">App Store</option>
@@ -1071,9 +1289,9 @@ export default function DashboardPage() {
                         <option value="LINKEDIN">LinkedIn</option>
                         <option value="OTHER">Other</option>
                       </select>
-                      <input type="url" value={link.url} onChange={e => { const ls = editingProject.links.map(l => l.id === link.id ? {...l, url: e.target.value} : l); setEditingProject({...editingProject, links: ls}); }} placeholder="https://…" className="flex-1 px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] transition-all"/>
-                      <button onClick={() => setEditingProject({...editingProject, links: editingProject.links.filter(l => l.id !== link.id)})} className="text-[#94a3b8] hover:text-[#ef4444] transition-colors">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                      <input type="url" value={link.url} onChange={e => { const ls = editingProject.links.map(l => l.id === link.id ? {...l, url: e.target.value} : l); setEditingProject({...editingProject, links: ls}); }} placeholder="https://…" className="input input--sm grow"/>
+                      <button onClick={() => setEditingProject({...editingProject, links: editingProject.links.filter(l => l.id !== link.id)})} className={`${css.iconBtn} ${css.iconBtnDanger}`}>
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </button>
                     </div>
                   ))}
@@ -1081,20 +1299,17 @@ export default function DashboardPage() {
               </div>
             </div>
             {/* Modal footer */}
-            <div className="px-6 py-4 border-t border-[#f1f5f9] flex items-center justify-between">
-              <button onClick={() => deleteProject(editingProject.id)} className="px-3 py-2 rounded-xl text-xs font-medium text-[#ef4444] hover:bg-red-50 transition-colors">Delete Project</button>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setEditingProject(null)} className="px-4 py-2 rounded-xl text-sm font-medium text-[#64748b] hover:bg-[#f1f5f9] transition-colors">Cancel</button>
-                <motion.button
+            <div className={css.dialogFoot}>
+              <HoldToDelete onConfirm={() => deleteProject(editingProject.id)} />
+              <div className="row">
+                <button onClick={() => setEditingProject(null)} className="btn btn--quiet">Cancel</button>
+                <button
                   onClick={saveEditedProject}
                   disabled={editSaving}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                  className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all hover:shadow-lg hover:shadow-indigo-200/50"
-                  style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+                  className="btn btn--primary"
                 >
                   {editSaving ? "Saving…" : editingProject.id.startsWith("new_") ? "Create Project" : "Save Changes"}
-                </motion.button>
+                </button>
               </div>
             </div>
           </motion.div>
@@ -1103,22 +1318,22 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* ─── Top Nav ─────────────────────────────────────── */}
-      <header className="shrink-0 h-14 border-b border-[#f1f5f9] bg-white/80 backdrop-blur-xl flex items-center justify-between px-5 z-10">
-        <div className="flex items-center gap-2.5">
-          <Link href="/" className="flex items-center gap-2">
+      <header className={css.topbar}>
+        <div className="row">
+          <Link href="/" className={css.brand}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Viefolio" className="w-7 h-7" />
-            <span className="text-base font-semibold text-[#0f172a] tracking-tight">Viefolio</span>
+            <img src="/logo.svg" alt="" aria-hidden="true" />
+            <span className={css.strongMd}>Viefolio</span>
           </Link>
-          <span className="text-[#e2e8f0] mx-1">/</span>
-          <span className="text-sm text-[#64748b] font-medium">Dashboard</span>
+          <span className={css.crumbSep}>/</span>
+          <span className={css.crumb}>Dashboard</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="row">
           {profile.username && (
-            <div className="flex items-center gap-1.5">
-              <a href={`https://${profile.username}.viefolio.com`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#6366f1] bg-[#eef2ff] border border-[#e0e7ff] hover:bg-[#e0e7ff] transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                <span className="hidden sm:inline">View live</span>
+            <div className="row">
+              <a href={`https://${profile.username}.viefolio.com`} target="_blank" rel="noopener noreferrer" className="btn btn--accent btn--sm">
+                <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={14} height={14}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                <span className={css.hideNarrow}>View live</span>
               </a>
               <button
                 onClick={() => {
@@ -1127,124 +1342,115 @@ export default function DashboardPage() {
                     setTimeout(() => setLinkCopied(false), 2000);
                   }).catch(() => {});
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#64748b] bg-[#f8fafc] border border-[#e2e8f0] hover:bg-[#f1f5f9] transition-colors"
+                className="btn btn--outline btn--sm"
                 title="Copy portfolio link"
               >
                 {linkCopied ? (
-                  <><svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg><span className="hidden sm:inline text-emerald-600">Copied!</span></>
+                  <><svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width={14} height={14} style={{ color: "var(--success)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg><span className={`${css.hideNarrow} ${css.successText}`}>Copied!</span></>
                 ) : (
-                  <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/></svg><span className="hidden sm:inline">Copy link</span></>
+                  <><svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={14} height={14}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/></svg><span className={css.hideNarrow}>Copy link</span></>
                 )}
               </button>
             </div>
           )}
-          <span className="hidden lg:block text-xs text-[#94a3b8] truncate max-w-[180px]">{user.email}</span>
-          <button onClick={handleSignOut} className="text-sm text-[#64748b] hover:text-[#ef4444] transition-colors">Sign out</button>
-          <motion.button
+          <span className={`${css.email} truncate`}>{user.email}</span>
+          <button onClick={handleSignOut} className="btn btn--quiet btn--sm">Sign out</button>
+          <button
             onClick={() => setShowAccountPanel(true)}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.94 }}
-            transition={{ type: "spring", stiffness: 400, damping: 22 }}
-            className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-[#c7d2fe] transition-shadow"
+            className={css.avatarBtn}
             title="Account & Insights"
+            aria-label="Account and insights"
           >
             {profile.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+              <img src={profile.avatarUrl} alt={displayName} className={css.avatarImg} />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white text-xs font-bold">{displayName.charAt(0).toUpperCase()}</div>
+              <div className={css.avatarLetter}>{displayName.charAt(0).toUpperCase()}</div>
             )}
-          </motion.button>
+          </button>
         </div>
       </header>
 
       {/* ─── Main ────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className={css.main}>
         {/* ═══ LEFT COLUMN ═══════════════════════════════ */}
-        <aside className="w-full md:w-[440px] lg:w-[480px] shrink-0 border-r border-[#f1f5f9] flex flex-col bg-white">
+        <aside className={css.editor}>
           {/* Tab Switcher */}
-          <div className="shrink-0 px-5 pt-4 pb-0">
-            <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1">
-              {(["profile","links","projects","skills","appearance"] as const).map(tab => (
-                <button key={tab} onClick={() => switchTab(tab)} className="relative flex-1 py-2 rounded-lg text-xs font-semibold">
+          <div className={css.tabs}>
+            <div className={css.tablist}>
+              {VALID_TABS.map(tab => (
+                <button key={tab} onClick={() => switchTab(tab)} aria-current={activeTab === tab ? "page" : undefined} className={css.tab}>
                   {activeTab === tab && (
-                    <motion.div layoutId="tab-pill" className="absolute inset-0 bg-white rounded-lg shadow-sm" transition={{ type: "spring", stiffness: 380, damping: 30 }} />
+                    <motion.span layoutId="tab-pill" className={css.tabPill} transition={{ type: "spring", duration: 0.3, bounce: 0 }} />
                   )}
-                  <span className={`relative z-10 transition-colors duration-150 ${activeTab === tab ? "text-[#0f172a]" : "text-[#64748b]"}`}>
-                    {tab==="profile" ? "Profile" : tab==="links" ? "Links" : tab==="projects" ? "Projects" : tab==="appearance" ? "Appearance" : "Skills"}
+                  <span className={css.tabLabel}>
+                    {TAB_LABELS[tab]}
                   </span>
                 </button>
               ))}
             </div>
+            {/* Replaces the per-pane Save buttons — the only remaining signal
+                that a write happened. aria-live so it isn't sighted-only. */}
+            <p className={css.autosave} aria-live="polite">
+              {profileSaving ? "Saving…" : profileSaved ? "All changes saved" : "Changes save automatically"}
+            </p>
           </div>
 
-          <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="flex-1 min-h-0 flex flex-col"
-          >
+          <div className={css.pane}>
           {/* ── PROFILE TAB ──────────────────────────────── */}
           {activeTab === "profile" && (
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              <div><h2 className="text-lg font-semibold text-[#0f172a] mb-1">Profile Settings</h2><p className="text-xs text-[#94a3b8]">Update your public portfolio information</p></div>
-              <div className="flex items-center gap-4">
+            <div className={css.paneScroll}>
+              <div className={css.sectionHead}><div><h2 className={css.paneTitle}>Profile Settings</h2><p className={css.metaXs}>The name, photo and URL visitors see at the top of your portfolio.</p></div></div>
+              <div className="row">
                 {/* Avatar */}
-                <div className="relative group">
+                <div className={css.avatarEdit}>
                   {profile.avatarUrl ? (
-                    <img src={profile.avatarUrl} alt="Avatar" className="w-16 h-16 rounded-2xl object-cover shadow-lg shadow-indigo-200/40"/>
+                    <img src={profile.avatarUrl} alt="Avatar" className={css.avatarEditImg}/>
                   ) : (
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white font-bold text-2xl shadow-lg shadow-indigo-200/40">{displayName.charAt(0).toUpperCase()}</div>
+                    <div className={`${css.avatarEditImg} ${css.avatarLetter}`}>{displayName.charAt(0).toUpperCase()}</div>
                   )}
-                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"/></svg>
-                    <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }}/>
+                  <label className={css.avatarOverlay}>
+                    <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={20} height={20} style={{ color: "currentColor" }}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"/></svg>
+                    <input type="file" accept="image/*" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }}/>
                   </label>
                   <AnimatePresence>
                     {avatarUploading && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 flex items-center justify-center bg-white/70 rounded-2xl">
-                        <div className="w-5 h-5 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin"/>
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className={css.uploadBusy}>
+                        <div className={`${css.ringSpinner} ${css.ringSpinnerSm}`}/>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
-                <div><p className="text-sm font-semibold text-[#0f172a]">{displayName}</p><p className="text-xs text-[#94a3b8]">{displayTitle}</p></div>
+                <div><p className={css.strongSm}>{displayName}</p><p className={css.metaXs}>{displayTitle}</p></div>
               </div>
               {/* Show Avatar Toggle */}
-              <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#f8fafc] border border-[#f1f5f9]">
-                <div><p className="text-xs font-medium text-[#374151]">Show avatar on portfolio</p><p className="text-[10px] text-[#94a3b8]">Display your profile picture publicly</p></div>
-                <button onClick={() => setProfile(p => ({...p, showAvatar: !p.showAvatar}))} className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${profile.showAvatar ? "bg-[#6366f1]" : "bg-[#d1d5db]"}`}>
-                  <span className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${profile.showAvatar ? "translate-x-[16px]" : "translate-x-0"}`}/>
+              <div className={css.toggleRow}>
+                <div><p className={css.strongXs}>Show avatar on portfolio</p><p className={css.meta2Xs}>Display your profile picture publicly</p></div>
+                <button onClick={() => setProfile(p => ({...p, showAvatar: !p.showAvatar}))} className="switch" data-on={profile.showAvatar} role="switch" aria-checked={!!profile.showAvatar} aria-label="Show avatar on portfolio">
+                  <span className="switch__knob"/>
                 </button>
               </div>
-              <div className="space-y-4">
+              <div className="col">
                 {([
                   { key: "fullName", label: "Full Name", placeholder: "Your full name" },
                   { key: "title", label: "Professional Title", placeholder: "e.g. Software Engineer" },
                   { key: "location", label: "Location", placeholder: "e.g. San Francisco, CA" },
                 ] as const).map(f => (
-                  <div key={f.key}><label className="block text-xs font-medium text-[#374151] mb-1.5">{f.label}</label><input type="text" value={profile[f.key]} onChange={e=>setProfile(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder} className="w-full px-4 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#0f172a] placeholder:text-[#cbd5e1] outline-none transition-all focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10"/></div>
+                  <div key={f.key}><label className="label">{f.label}</label><input type="text" value={profile[f.key]} onChange={e=>setProfile(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder} className="input"/></div>
                 ))}
-                <div><label className="block text-xs font-medium text-[#374151] mb-1.5">Bio</label><textarea value={profile.bio} onChange={e=>setProfile(p=>({...p,bio:e.target.value}))} placeholder="Write a short bio about yourself…" rows={3} className="w-full px-4 py-2.5 rounded-xl border border-[#e2e8f0] bg-white text-sm text-[#0f172a] placeholder:text-[#cbd5e1] outline-none transition-all focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10 resize-none"/></div>
+                <div><label className="label">Bio</label><textarea value={profile.bio} onChange={e=>setProfile(p=>({...p,bio:e.target.value}))} placeholder="Write a short bio about yourself…" rows={3} className="textarea"/></div>
                 {/* Username / Claim URL */}
                 <div>
-                  <label className="block text-xs font-medium text-[#374151] mb-1.5">Claim your URL</label>
-                  <div className={`flex items-center rounded-xl border bg-white overflow-hidden transition-all focus-within:ring-2 ${
-                    usernameStatus === "taken" ? "border-red-300 focus-within:border-red-400 focus-within:ring-red-100" :
-                    usernameStatus === "available" ? "border-emerald-300 focus-within:border-emerald-400 focus-within:ring-emerald-100" :
-                    "border-[#e2e8f0] focus-within:border-[#6366f1] focus-within:ring-[#6366f1]/10"
-                  }`}>
-                    <input type="text" value={profile.username} onChange={e => { const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 20); setProfile(p => ({...p, username: val})); checkUsername(val); }} placeholder="username" maxLength={20} className="flex-1 px-4 py-2.5 bg-transparent text-sm font-medium text-[#0f172a] placeholder:text-[#cbd5e1] outline-none"/>
-                    <span className="pr-4 pl-1 text-sm text-[#94a3b8] select-none shrink-0">.viefolio.com</span>
+                  <label className="label">Claim your URL</label>
+                  <div className="input-group" data-state={usernameStatus}>
+                    <input type="text" value={profile.username} onChange={e => { const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 20); setProfile(p => ({...p, username: val})); checkUsername(val); }} placeholder="username" maxLength={20} className="input grow"/>
+                    <span className="input-group__affix">.viefolio.com</span>
                     <AnimatePresence mode="wait">
                       {usernameStatus !== "idle" && (
-                        <motion.span key={usernameStatus} initial={{ opacity: 0, scale: 0.6, filter: "blur(4px)" }} animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }} exit={{ opacity: 0, scale: 0.6 }} transition={{ duration: 0.15 }} className="mr-3 shrink-0 flex items-center">
-                          {usernameStatus === "checking" && <svg className="w-4 h-4 text-[#94a3b8] animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>}
-                          {usernameStatus === "available" && <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>}
-                          {usernameStatus === "taken" && <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>}
+                        <motion.span key={usernameStatus} initial={{ opacity: 0, scale: 0.6, filter: "blur(4px)" }} animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }} exit={{ opacity: 0, scale: 0.6 }} transition={{ duration: 0.15 }} className="row noshrink">
+                          {usernameStatus === "checking" && <Spinner size={16} />}
+                          {usernameStatus === "available" && <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--success)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>}
+                          {usernameStatus === "taken" && <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--danger)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>}
                         </motion.span>
                       )}
                     </AnimatePresence>
@@ -1252,16 +1458,16 @@ export default function DashboardPage() {
                   {/* Status messages */}
                   <AnimatePresence mode="wait">
                     {usernameStatus === "available" && profile.username && (
-                      <motion.div key="status-available" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ type: "spring", duration: 0.25, bounce: 0 }} className="mt-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
-                        <p className="text-xs text-emerald-700">✓ Username is available! Your portfolio: <span className="font-semibold">{profile.username}</span>.viefolio.com</p>
+                      <motion.div key="status-available" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ type: "spring", duration: 0.25, bounce: 0 }} className="note">
+                        <p className={`${css.metaXs} ${css.successText}`}>✓ Username is available! Your portfolio: <span className="font-semibold">{profile.username}</span>.viefolio.com</p>
                       </motion.div>
                     )}
                     {usernameStatus === "taken" && (
-                      <motion.div key="status-taken" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ type: "spring", duration: 0.25, bounce: 0 }} className="mt-2 space-y-2">
-                        <p className="text-xs text-red-600 font-medium">✗ Username is already taken.</p>
-                        <div className="flex flex-wrap gap-1.5">
+                      <motion.div key="status-taken" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ type: "spring", duration: 0.25, bounce: 0 }} className="col">
+                        <p className={`${css.metaXs} ${css.dangerText}`}>✗ Username is already taken.</p>
+                        <div className="row row--wrap">
                           {usernameSuggestions.map(s => (
-                            <button key={s} type="button" onClick={() => { setProfile(p => ({...p, username: s})); checkUsername(s); }} className="px-2.5 py-1 rounded-lg bg-[#f1f5f9] text-[11px] font-medium text-[#6366f1] hover:bg-[#eef2ff] border border-[#e2e8f0] hover:border-[#c7d2fe] transition-all">
+                            <button key={s} type="button" onClick={() => { setProfile(p => ({...p, username: s})); checkUsername(s); }} className="chip chip--sm">
                               {s}
                             </button>
                           ))}
@@ -1269,60 +1475,57 @@ export default function DashboardPage() {
                       </motion.div>
                     )}
                     {usernameStatus === "idle" && profile.username && profile.username.length >= 2 && (
-                      <motion.div key="status-idle" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ type: "spring", duration: 0.25, bounce: 0 }} className="mt-2 px-3 py-2 rounded-lg bg-[#f8fafc] border border-[#f1f5f9]">
-                        <p className="text-xs text-[#64748b]">Your portfolio: <span className="font-semibold" style={{ color: "#6366f1" }}>{profile.username}</span>.viefolio.com</p>
+                      <motion.div key="status-idle" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ type: "spring", duration: 0.25, bounce: 0 }} className="note">
+                        <p className={css.metaXs}>Your portfolio: <span className="font-semibold" style={{ color: "var(--ink)" }}>{profile.username}</span>.viefolio.com</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <p className="mt-1 text-[10px] text-[#94a3b8]">Lowercase letters, numbers, and dashes only. Max 20 characters.</p>
+                  <p className={css.meta2Xs}>Lowercase letters, numbers, and dashes only. Max 20 characters.</p>
                 </div>
               </div>
               {/* Header Layout */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Header Layout</label>
-                <div className="flex gap-2">
+                <label className="label">Header Layout</label>
+                <div className="row">
                   {([{v:'LEFT' as const, l:'Left'},{v:'CENTER' as const, l:'Center'},{v:'RIGHT' as const, l:'Right'}]).map(o => (
-                    <button key={o.v} onClick={() => setProfile(p => ({...p, userInfoLayout: o.v}))} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${profile.userInfoLayout === o.v ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]'}`}>{o.l}</button>
+                    <button key={o.v} onClick={() => setProfile(p => ({...p, userInfoLayout: o.v}))} className="chip chip--grow" data-active={profile.userInfoLayout === o.v}>{o.l}</button>
                   ))}
                 </div>
               </div>
-              <motion.button
-                onClick={saveProfile}
-                disabled={profileSaving}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200/50 disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-              >
-                {profileSaving ? "Saving…" : profileSaved ? "✓ Saved!" : "Update Profile"}
-              </motion.button>
             </div>
           )}
 
           {/* ── LINKS TAB ──────────────────────────────────── */}
           {activeTab === "links" && (
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              <div className="flex items-center justify-between">
-                <div><h2 className="text-lg font-semibold text-[#0f172a] mb-1">Social Links</h2><p className="text-xs text-[#94a3b8]">Manage your links and choose a layout</p></div>
-                <button onClick={() => { setProfile(p => ({...p, showLinks: !(p.showLinks ?? true)})); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${profile.showLinks !== false ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#94a3b8]'}`}>
+            <div className={css.paneScroll}>
+              <div className={css.sectionHead}>
+                <div><h2 className={css.paneTitle}>Social Links</h2><p className={css.metaXs}>Point visitors to the places you already post.</p></div>
+                <button onClick={() => { setProfile(p => ({...p, showLinks: !(p.showLinks ?? true)})); }} className="chip noshrink" data-active={profile.showLinks !== false}>
                   {profile.showLinks !== false ? 'Visible' : 'Hidden'}
                 </button>
               </div>
               {/* Links Layout */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-1.5">Links Layout</label>
-                <div className="flex gap-2">
+                <label className="label">Links Layout</label>
+                <div className="row">
                   {([{v:'ICONS' as const, l:'Icons'},{v:'CARD' as const, l:'Cards'},{v:'CREATOR' as const, l:'Creator'}]).map(o => (
-                    <button key={o.v} onClick={() => setProfile(p => ({...p, socialLinksLayout: o.v}))} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${profile.socialLinksLayout === o.v ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]'}`}>{o.l}</button>
+                    <button key={o.v} onClick={() => setProfile(p => ({...p, socialLinksLayout: o.v}))} className="chip chip--grow" data-active={profile.socialLinksLayout === o.v}>{o.l}</button>
                   ))}
                 </div>
               </div>
               {/* Link entries */}
-              <div className="space-y-3">
+              <div className={css.listToolbar}>
+                <span className={css.countLabel}>{profile.socialLinks.length} link{profile.socialLinks.length!==1?'s':''}</span>
+                <button onClick={() => setProfile(p => ({...p, socialLinks: [...p.socialLinks, {id: crypto.randomUUID(), type: 'CUSTOM', title: '', url: '', visible: true}]}))} className="btn btn--primary btn--sm">
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width={14} height={14}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                  Add Link
+                </button>
+              </div>
+              <div className="col">
                 {profile.socialLinks.map((link, idx) => (
-                  <div key={link.id} className="bg-white border border-[#f1f5f9] rounded-xl p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <select value={link.type} onChange={e => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, type: e.target.value as SocialLink['type']} : l)}))} className="px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#0f172a] outline-none">
+                  <div key={link.id} className={`${css.panelBox} col`}>
+                    <div className="row">
+                      <select value={link.type} onChange={e => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, type: e.target.value as SocialLink['type']} : l)}))} className={`select select--sm ${css.typeField}`}>
                         <option value="GITHUB">GitHub</option>
                         <option value="LINKEDIN">LinkedIn</option>
                         <option value="TWITTER">Twitter</option>
@@ -1336,96 +1539,84 @@ export default function DashboardPage() {
                         <option value="WEBSITE">Website</option>
                         <option value="CUSTOM">Custom</option>
                       </select>
-                      <input type="text" value={link.title} onChange={e => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, title: e.target.value} : l)}))} placeholder="Title" className="flex-1 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] transition-all"/>
-                      <button onClick={() => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, visible: !(l.visible ?? true)} : l)}))} className="p-1.5 rounded-lg hover:bg-[#f1f5f9] transition-colors" title={link.visible !== false ? 'Visible' : 'Hidden'}>
+                      <input type="text" value={link.title} onChange={e => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, title: e.target.value} : l)}))} placeholder="Title" className="input input--sm grow"/>
+                      <button onClick={() => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, visible: !(l.visible ?? true)} : l)}))} className={css.iconBtn} title={link.visible !== false ? 'Visible' : 'Hidden'}>
                         <AnimatePresence mode="wait">
                         {link.visible !== false ? (
-                          <motion.span key="vis" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }} className="flex"><svg className="w-4 h-4 text-[#6366f1]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></motion.span>
+                          <motion.span key="vis" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }} className={css.iconFlex}><svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></motion.span>
                         ) : (
-                          <motion.span key="hid" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }} className="flex"><svg className="w-4 h-4 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></motion.span>
+                          <motion.span key="hid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }} className={css.iconFlex}><svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink-3)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></motion.span>
                         )}
                       </AnimatePresence>
                       </button>
-                      <button onClick={() => setProfile(p => ({...p, socialLinks: p.socialLinks.filter((_,i) => i!==idx)}))} className="text-[#94a3b8] hover:text-[#ef4444] transition-colors"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                      <button onClick={() => setProfile(p => ({...p, socialLinks: p.socialLinks.filter((_,i) => i!==idx)}))} className={`${css.iconBtn} ${css.iconBtnDanger}`}><svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
                     </div>
-                    <input type="url" value={link.url} onChange={e => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, url: e.target.value} : l)}))} placeholder="https://..." className="w-full px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] transition-all"/>
+                    <input type="url" value={link.url} onChange={e => setProfile(p => ({...p, socialLinks: p.socialLinks.map((l,i) => i===idx ? {...l, url: e.target.value} : l)}))} placeholder="https://..." className="input input--sm"/>
                   </div>
                 ))}
               </div>
-              <button onClick={() => setProfile(p => ({...p, socialLinks: [...p.socialLinks, {id: crypto.randomUUID(), type: 'CUSTOM', title: '', url: '', visible: true}]}))} className="w-full py-2.5 rounded-xl text-xs font-semibold border border-dashed border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc] hover:border-[#c7d2fe] transition-all">
-                + Add Link
-              </button>
-              <motion.button
-                onClick={saveProfile}
-                disabled={profileSaving}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200/50 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-              >
-                {profileSaving ? 'Saving…' : profileSaved ? '✓ Saved!' : 'Save Links'}
-              </motion.button>
             </div>
           )}
 
           {/* ── PROJECTS TAB ──────────────────────────────── */}
           {activeTab === "projects" && (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="shrink-0 px-5 py-4 border-b border-[#f1f5f9] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div><h2 className="text-lg font-semibold text-[#0f172a]">My Projects</h2><p className="text-xs text-[#94a3b8] mt-0.5">{projects.length} project{projects.length!==1?"s":""}</p></div>
-                  <button onClick={() => { setProfile(p => ({...p, showProjects: !(p.showProjects ?? true)})); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${profile.showProjects !== false ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#94a3b8]'}`}>
-                    {profile.showProjects !== false ? 'Visible' : 'Hidden'}
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setShowReorder(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-[#64748b] bg-[#f8fafc] border border-[#e2e8f0] transition-all hover:bg-[#f1f5f9]">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+            <div className={css.pane}>
+              <div className={`${css.sectionHead} ${css.listHead}`}>
+                <div><h2 className={css.paneTitle}>My Projects</h2><p className={css.metaXs}>Each project becomes a card on your portfolio. Add the work, then order it the way you want it read.</p></div>
+                <button onClick={() => { setProfile(p => ({...p, showProjects: !(p.showProjects ?? true)})); }} className="chip noshrink" data-active={profile.showProjects !== false}>
+                  {profile.showProjects !== false ? 'Visible' : 'Hidden'}
+                </button>
+              </div>
+              <div className={`${css.listToolbar} ${css.listToolbarInset}`}>
+                <span className={css.countLabel}>{projects.length} project{projects.length!==1?"s":""}</span>
+                <div className="row noshrink">
+                  <button onClick={() => setShowReorder(true)} className="btn btn--outline btn--sm">
+                    <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={14} height={14}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
                     Reorder
                   </button>
-                  <button onClick={createNewProject} className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200/50" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                  <button onClick={createNewProject} className="btn btn--primary btn--sm">
+                    <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width={14} height={14}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
                     New Project
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <div className={css.list}>
                 {projects.length===0 && (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-[#f1f5f9] flex items-center justify-center mb-4"><svg className="w-7 h-7 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg></div>
-                    <p className="text-sm font-medium text-[#475569] mb-1">No projects yet</p>
-                    <p className="text-xs text-[#94a3b8]">Create your first project to get started</p>
+                  <div className={css.empty}>
+                    <div className={css.emptyIcon}><svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={28} height={28} style={{ color: "var(--ink-3)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg></div>
+                    <p className={css.strongSm}>No projects yet</p>
+                    <p className={css.metaXs}>Create your first project to get started</p>
                   </div>
                 )}
                 {projects.map(project => {
                   const isCompleted = project.status === "RELEASED";
                   return (
-                    <div key={project.id} onClick={() => { setSelectedId(project.id); backupCheckpoints.current = project.checkpoints.map(c => ({...c})); setEditingProject({...project}); }} className={`flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:shadow-sm ${project.visible === false ? 'opacity-60' : ''} ${selectedId === project.id ? 'border-[#c7d2fe] bg-[#fafafe] shadow-sm' : 'border-[#f1f5f9] bg-white hover:border-[#e2e8f0]'}`}>
+                    <div key={project.id} onClick={() => { setSelectedId(project.id); backupCheckpoints.current = project.checkpoints.map(c => ({...c})); setEditingProject({...project}); }} className={css.listItem} data-selected={selectedId === project.id} data-hidden={project.visible === false}>
                       {/* Image or avatar */}
                       {project.imageUrl && project.showImage ? (
-                        <img src={project.imageUrl} alt={project.title} className="w-10 h-10 rounded-lg object-cover shrink-0"/>
+                        <img src={project.imageUrl} alt={project.title} className={css.listThumb}/>
                       ) : (
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#f1f5f9' }}>
-                          <svg className="w-5 h-5 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
+                        <div className={css.listThumb} style={{ backgroundColor: '#f1f5f9' }}>
+                          <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={20} height={20} style={{ color: "var(--ink-3)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
                         </div>
                       )}
                       {/* Title + description */}
-                      <div className="min-w-0 flex-1">
-                        <h3 className={`text-sm font-semibold truncate ${project.visible === false ? 'text-[#94a3b8]' : 'text-[#0f172a]'}`}>{project.title || 'Untitled'}</h3>
-                        <p className="text-xs text-[#94a3b8] mt-0.5 truncate">{project.description || 'No description'}</p>
+                      <div className="grow">
+                        <h3 className={`${css.listTitle} truncate`}>{project.title || 'Untitled'}</h3>
+                        <p className={`${css.metaXs} truncate`}>{project.description || 'No description'}</p>
                       </div>
                       {/* Status + visibility */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button onClick={e => { e.stopPropagation(); const updated = {...project, visible: !(project.visible ?? true)}; setProjects(ps => ps.map(p => p.id === project.id ? updated : p)); updateDoc(doc(db, 'projects', project.id), { visible: updated.visible }); }} className="p-1.5 rounded-lg hover:bg-[#f1f5f9] transition-colors" title={project.visible !== false ? 'Visible' : 'Hidden'}>
-                          <AnimatePresence mode="wait">
+                      <div className="row noshrink">
+                        <button onClick={e => { e.stopPropagation(); const updated = {...project, visible: !(project.visible ?? true)}; setProjects(ps => ps.map(p => p.id === project.id ? updated : p)); updateDoc(doc(db, 'projects', project.id), { visible: updated.visible }); }} className={css.iconBtn} title={project.visible !== false ? 'Visible' : 'Hidden'}>
+                          <AnimatePresence initial={false} mode="popLayout">
                           {project.visible !== false ? (
-                            <motion.span key="vis" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }} className="flex"><svg className="w-4 h-4 text-[#6366f1]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></motion.span>
+                            <motion.span key="vis" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }} className={css.iconFlex}><svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></motion.span>
                           ) : (
-                            <motion.span key="hid" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }} className="flex"><svg className="w-4 h-4 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></motion.span>
+                            <motion.span key="hid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }} className={css.iconFlex}><svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink-3)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></motion.span>
                           )}
                         </AnimatePresence>
                         </button>
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${isCompleted ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>{isCompleted ? 'Done' : 'WIP'}</span>
+                        <span className="tag" data-tone={isCompleted ? "accent" : undefined}>{isCompleted ? 'Done' : 'WIP'}</span>
                       </div>
                     </div>
                   );
@@ -1435,24 +1626,24 @@ export default function DashboardPage() {
               {/* ── Reorder Popup ── */}
               <AnimatePresence>
               {showReorder && (
-                <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowReorder(false)}>
-                  <motion.div initial={{scale:0.95,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:0.95,opacity:0}} onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-                    <div className="px-5 py-4 border-b border-[#f1f5f9] flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-[#0f172a]">Reorder Projects</h3>
-                      <button onClick={() => setShowReorder(false)} className="text-[#94a3b8] hover:text-[#0f172a]"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className={css.scrim} onClick={() => setShowReorder(false)}>
+                  <motion.div initial={{scale:0.95,opacity:0}} animate={{scale:1,opacity:1}} exit={{scale:0.95,opacity:0}} onClick={e => e.stopPropagation()} className={css.dialog}>
+                    <div className={css.dialogHead}>
+                      <h3 className={css.strongSm}>Reorder Projects</h3>
+                      <button onClick={() => setShowReorder(false)} className={css.iconBtn}><svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={20} height={20}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className={css.dialogBody}>
                       {/* Completed */}
                       {(() => { const completed = projects.filter(p => p.status === 'RELEASED'); return completed.length > 0 ? (
                         <div>
-                          <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider mb-2">Completed ({completed.length})</p>
-                          <Reorder.Group axis="y" values={completed} onReorder={(reordered) => { const inProg = projects.filter(p => p.status !== 'RELEASED'); setProjects([...reordered, ...inProg].map((p,i)=>({...p,orderIndex:i}))); setProjectOrderChanged(true); }} className="space-y-1.5">
-                            {completed.map(p => (
-                              <Reorder.Item key={p.id} value={p} className="cursor-grab active:cursor-grabbing">
-                                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[#f1f5f9] bg-white hover:bg-[#fafafe]">
-                                  <svg className="w-4 h-4 text-[#cbd5e1] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
-                                  <span className="text-sm font-medium text-[#0f172a] truncate flex-1">{p.title || 'Untitled'}</span>
-                                  <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                          <p className={css.sectionLabel}>Completed ({completed.length})</p>
+                          <Reorder.Group axis="y" values={completed} onReorder={(reordered) => { const inProg = projects.filter(p => p.status !== 'RELEASED'); setProjects([...reordered, ...inProg].map((p,i)=>({...p,orderIndex:i}))); setProjectOrderChanged(true); }} className="col">
+                            {completed.map((p, i) => (
+                              <Reorder.Item key={p.id} value={p} className={css.reorderItem}>
+                                <div className={css.reorderRow}>
+                                  <MoveButtons index={i} count={completed.length} label={p.title || 'Untitled'} onMove={to => { const inProg = projects.filter(x => x.status !== 'RELEASED'); setProjects([...moveItem(completed, i, to), ...inProg].map((x, n) => ({ ...x, orderIndex: n }))); setProjectOrderChanged(true); }} />
+                                  <span className="grow truncate">{p.title || 'Untitled'}</span>
+                                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true" width={14} height={14} style={{ color: "var(--success)" }} className="noshrink"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 </div>
                               </Reorder.Item>
                             ))}
@@ -1462,14 +1653,14 @@ export default function DashboardPage() {
                       {/* In Progress */}
                       {(() => { const inProg = projects.filter(p => p.status !== 'RELEASED'); return inProg.length > 0 ? (
                         <div>
-                          <p className="text-[10px] font-semibold text-[#6366f1] uppercase tracking-wider mb-2">In Progress ({inProg.length})</p>
-                          <Reorder.Group axis="y" values={inProg} onReorder={(reordered) => { const completed = projects.filter(p => p.status === 'RELEASED'); setProjects([...completed, ...reordered].map((p,i)=>({...p,orderIndex:i}))); setProjectOrderChanged(true); }} className="space-y-1.5">
-                            {inProg.map(p => (
-                              <Reorder.Item key={p.id} value={p} className="cursor-grab active:cursor-grabbing">
-                                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[#f1f5f9] bg-white hover:bg-[#fafafe]">
-                                  <svg className="w-4 h-4 text-[#cbd5e1] shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
-                                  <span className="text-sm font-medium text-[#0f172a] truncate flex-1">{p.title || 'Untitled'}</span>
-                                  <span className="w-2 h-2 rounded-full bg-[#6366f1] animate-pulse shrink-0"/>
+                          <p className={css.sectionLabel}>In Progress ({inProg.length})</p>
+                          <Reorder.Group axis="y" values={inProg} onReorder={(reordered) => { const completed = projects.filter(p => p.status === 'RELEASED'); setProjects([...completed, ...reordered].map((p,i)=>({...p,orderIndex:i}))); setProjectOrderChanged(true); }} className="col">
+                            {inProg.map((p, i) => (
+                              <Reorder.Item key={p.id} value={p} className={css.reorderItem}>
+                                <div className={css.reorderRow}>
+                                  <MoveButtons index={i} count={inProg.length} label={p.title || 'Untitled'} onMove={to => { const done = projects.filter(x => x.status === 'RELEASED'); setProjects([...done, ...moveItem(inProg, i, to)].map((x, n) => ({ ...x, orderIndex: n }))); setProjectOrderChanged(true); }} />
+                                  <span className="grow truncate">{p.title || 'Untitled'}</span>
+                                  <span className={`${css.liveDot} noshrink`}/>
                                 </div>
                               </Reorder.Item>
                             ))}
@@ -1477,145 +1668,128 @@ export default function DashboardPage() {
                         </div>
                       ) : null; })()}
                     </div>
-                    <div className="px-5 py-3 border-t border-[#f1f5f9] flex gap-2">
+                    <div className={css.dialogFoot}>
                       <AnimatePresence>
                         {projectOrderChanged && (
                           <motion.button
-                            initial={{ opacity: 0, x: -8, scale: 0.95 }}
-                            animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: -8, scale: 0.95 }}
+                            initial={{ opacity: 0, transform: "scale(0.97)" }}
+                            animate={{ opacity: 1, transform: "scale(1)" }}
+                            exit={{ opacity: 0, transform: "scale(0.97)" }}
                             transition={{ type: "spring", duration: 0.25, bounce: 0 }}
-                            whileTap={{ scale: 0.97 }}
                             onClick={() => { saveProjectOrder(); setShowReorder(false); }}
-                            className="flex-1 py-2 rounded-xl text-xs font-semibold text-white"
-                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                            className="btn btn--primary btn--sm grow"
+                           
                           >
                             Save Order
                           </motion.button>
                         )}
                       </AnimatePresence>
-                      <button onClick={() => setShowReorder(false)} className="flex-1 py-2 rounded-xl text-xs font-semibold text-[#64748b] border border-[#e2e8f0] hover:bg-[#f8fafc]">Close</button>
+                      <button onClick={() => setShowReorder(false)} className="btn btn--outline btn--sm grow">Close</button>
                     </div>
                   </motion.div>
                 </motion.div>
               )}
               </AnimatePresence>
               {/* Layout Style + Portfolio Visibility */}
-              <div className="shrink-0 px-5 py-4 border-t border-[#f1f5f9] space-y-3">
+              <div className={css.footerBar}>
                 <div>
-                  <label className="block text-xs font-medium text-[#374151] mb-1.5">Layout Style</label>
-                  <div className="flex gap-2">
+                  <label className="label">Layout Style</label>
+                  <div className="row">
                     {LAYOUT_OPTIONS.map(o => (
-                      <button key={o.value} onClick={() => setProfile(p => ({...p, layoutStyle: o.value}))} className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center gap-1 ${profile.layoutStyle === o.value ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]'}`}>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d={o.icon}/></svg>
+                      <button key={o.value} onClick={() => setProfile(p => ({...p, layoutStyle: o.value}))} className="chip chip--grow chip--stack" data-active={profile.layoutStyle === o.value}>
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16}><path strokeLinecap="round" strokeLinejoin="round" d={o.icon}/></svg>
                         {o.label}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#374151] mb-1.5">Portfolio Visibility</label>
-                  <div className="flex gap-2">
+                  <label className="label">Portfolio Visibility</label>
+                  <div className="row">
                     {([{v:'ALL' as const, l:'All Projects'},{v:'RELEASED_ONLY' as const, l:'Released Only'}]).map(o => (
-                      <button key={o.v} onClick={() => setProfile(p => ({...p, portfolioVisibility: o.v}))} className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${profile.portfolioVisibility === o.v ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]'}`}>{o.l}</button>
+                      <button key={o.v} onClick={() => setProfile(p => ({...p, portfolioVisibility: o.v}))} className="chip chip--grow" data-active={profile.portfolioVisibility === o.v}>{o.l}</button>
                     ))}
                   </div>
                 </div>
-                <motion.button
-                  onClick={saveProfile}
-                  disabled={profileSaving}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                  className="w-full py-2 rounded-xl text-xs font-semibold text-white transition-all hover:shadow-lg disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-                >
-                  {profileSaving ? 'Saving…' : profileSaved ? '✓ Saved!' : 'Save Layout'}
-                </motion.button>
               </div>
             </div>
           )}
 
           {/* ═══ SKILLS TAB ═══════════════════════════════ */}
           {activeTab === "skills" && (
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-[#0f172a]">Your Skills</h2>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => { setProfile(p => ({...p, showSkills: !(p.showSkills ?? true)})); }} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${profile.showSkills !== false ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#94a3b8]'}`}>
-                    {profile.showSkills !== false ? 'Visible' : 'Hidden'}
-                  </button>
-                  <button onClick={() => setProfile(p => ({...p, skills: [...p.skills, { id: crypto.randomUUID(), name: "", level: 50, visible: true }]}))} className="text-xs font-semibold text-[#6366f1] hover:text-[#4f46e5]">+ Add Skill</button>
-                </div>
+            <div className={css.paneScroll}>
+              <div className={css.sectionHead}>
+                <div><h2 className={css.paneTitle}>Your Skills</h2><p className={css.metaXs}>Name what you work with and set how far along you are. Each one shows as a labelled meter.</p></div>
+                <button onClick={() => { setProfile(p => ({...p, showSkills: !(p.showSkills ?? true)})); }} className="chip noshrink" data-active={profile.showSkills !== false}>
+                  {profile.showSkills !== false ? 'Visible' : 'Hidden'}
+                </button>
               </div>
-              {profile.skills.length === 0 && <p className="text-xs text-[#94a3b8] text-center py-8">No skills added yet. Add your first skill!</p>}
-              <div className="space-y-3">
-                <Reorder.Group axis="y" values={profile.skills} onReorder={(s) => setProfile(p => ({...p, skills: s}))} className="space-y-3">
-                  {profile.skills.map((skill: Skill) => (
-                    <Reorder.Item key={skill.id} value={skill} className="relative cursor-grab active:cursor-grabbing w-full">
-                      <div className={`border border-[#f1f5f9] rounded-xl p-4 ${skill.visible === false ? 'bg-[#fafafa]' : 'bg-white'}`}>
-                        <div className="flex items-center gap-3 mb-2">
-                      <input type="text" value={skill.name} onChange={e => setProfile(p => ({...p, skills: p.skills.map(s => s.id === skill.id ? {...s, name: e.target.value} : s)}))} placeholder="Skill name (e.g. React)" className="flex-1 px-3 py-2 rounded-lg border border-[#e2e8f0] text-sm text-[#0f172a] placeholder:text-[#cbd5e1] outline-none focus:border-[#6366f1] transition-all"/>
-                      <button onClick={() => setProfile(p => ({...p, skills: p.skills.map(s => s.id === skill.id ? {...s, visible: !(s.visible ?? true)} : s)}))} className="p-1.5 rounded-lg hover:bg-[#f1f5f9] transition-colors" title={skill.visible !== false ? 'Visible' : 'Hidden'}>
-                        <AnimatePresence mode="wait">
+              <div className={css.listToolbar}>
+                <span className={css.countLabel}>{profile.skills.length} skill{profile.skills.length!==1?'s':''}</span>
+                <button onClick={() => setProfile(p => ({...p, skills: [...p.skills, { id: crypto.randomUUID(), name: "", level: 50, visible: true }]}))} className="btn btn--primary btn--sm">
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" width={14} height={14}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                  Add Skill
+                </button>
+              </div>
+              {profile.skills.length === 0 && <p className={`${css.metaXs} ${css.emptyNote}`}>No skills added yet. Add your first skill!</p>}
+              <div className="col">
+                <Reorder.Group axis="y" values={profile.skills} onReorder={(s) => setProfile(p => ({...p, skills: s}))} className="col">
+                  {profile.skills.map((skill: Skill, si: number) => (
+                    <Reorder.Item key={skill.id} value={skill} className={css.reorderItem}>
+                      <div className={css.panelBox} data-dim={skill.visible === false}>
+                        <div className="row">
+                      <MoveButtons index={si} count={profile.skills.length} label={skill.name || 'skill'} onMove={to => setProfile(p => ({ ...p, skills: moveItem(p.skills, si, to) }))} />
+                      <input type="text" value={skill.name} onChange={e => setProfile(p => ({...p, skills: p.skills.map(s => s.id === skill.id ? {...s, name: e.target.value} : s)}))} placeholder="Skill name (e.g. React)" className="input input--sm grow"/>
+                      <button onClick={() => setProfile(p => ({...p, skills: p.skills.map(s => s.id === skill.id ? {...s, visible: !(s.visible ?? true)} : s)}))} className={css.iconBtn} title={skill.visible !== false ? 'Visible' : 'Hidden'}>
+                        <AnimatePresence initial={false} mode="popLayout">
                         {skill.visible !== false ? (
-                          <motion.span key="vis" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }} className="flex"><svg className="w-4 h-4 text-[#6366f1]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></motion.span>
+                          <motion.span key="vis" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }} className={css.iconFlex}><svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></motion.span>
                         ) : (
-                          <motion.span key="hid" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} transition={{ duration: 0.12 }} className="flex"><svg className="w-4 h-4 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></motion.span>
+                          <motion.span key="hid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }} className={css.iconFlex}><svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16} style={{ color: "var(--ink-3)" }}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg></motion.span>
                         )}
                       </AnimatePresence>
                       </button>
-                      <button onClick={() => setProfile(p => ({...p, skills: p.skills.filter(s => s.id !== skill.id)}))} className="text-[#94a3b8] hover:text-[#ef4444] transition-colors"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                      <button onClick={() => setProfile(p => ({...p, skills: p.skills.filter(s => s.id !== skill.id)}))} className={`${css.iconBtn} ${css.iconBtnDanger}`}><svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <input type="range" min={1} max={100} value={skill.level} onChange={e => setProfile(p => ({...p, skills: p.skills.map(s => s.id === skill.id ? {...s, level: Number(e.target.value)} : s)}))} className="flex-1 h-1.5 rounded-full appearance-none bg-[#f1f5f9] accent-[#6366f1]"/>
-                      <span className="text-xs font-semibold text-[#64748b] w-10 text-right">{skill.level}%</span>
+                    <div className="row">
+                      <input type="range" min={1} max={100} value={skill.level} onChange={e => setProfile(p => ({...p, skills: p.skills.map(s => s.id === skill.id ? {...s, level: Number(e.target.value)} : s)}))} className="range grow"/>
+                      <span className={`${css.metaXs} ${css.meterValue}`}>{skill.level}%</span>
                     </div>
                       </div>
                     </Reorder.Item>
                   ))}
                 </Reorder.Group>
               </div>
-              <motion.button
-                onClick={saveProfile}
-                disabled={profileSaving}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200/50 disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-              >
-                {profileSaving ? "Saving…" : profileSaved ? "✓ Saved!" : "Save Skills"}
-              </motion.button>
             </div>
           )}
 
           {/* ═══ APPEARANCE TAB ═══════════════════════════ */}
           {activeTab === "appearance" && (
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
-              <div><h2 className="text-lg font-semibold text-[#0f172a] mb-1">Appearance</h2><p className="text-xs text-[#94a3b8]">Build your theme style by style</p></div>
+            <div className={css.paneScroll}>
+              <div className={css.sectionHead}><div><h2 className={css.paneTitle}>Appearance</h2><p className={css.metaXs}>Start from a style, then tune the colours, type and shapes until it feels like yours.</p></div></div>
 
               {/* ── Current Style ── */}
               <div>
-                <label className="block text-xs font-medium text-[#374151] mb-2">Current Style</label>
+                <label className="label">Current Style</label>
                 {(() => {
                   const presetMeta: Record<string, {l:string;d:string;bg:string;fg:string}> = {
-                    MINIMAL:{l:'Minimal',d:'Clean & light',bg:'#ffffff',fg:'#0f172a'},
+                    MINIMAL:{l:'Minimal',d:'Clean & light',bg:'#fdfbf3',fg:'#013e37'},
                     NEON:{l:'Neon',d:'Dark & glowing',bg:'#0a0a0a',fg:'#22d3ee'},
-                    GLASSMORPHISM:{l:'Glass',d:'Frosted & airy',bg:'#0f172a',fg:'#a78bfa'},
-                    BRUTALIST:{l:'Brutalist',d:'Bold & raw',bg:'#fffbe6',fg:'#ff5722'},
-                    SOFT:{l:'Soft',d:'Gentle & pastel',bg:'#f9f5ff',fg:'#8b5cf6'},
+                    GLASSMORPHISM:{l:'Glass',d:'Frosted & airy',bg:'#012b26',fg:'#ffefb3'},
+                    BRUTALIST:{l:'Brutalist',d:'Bold & raw',bg:'#ffefb3',fg:'#000000'},
                     MONOCHROME:{l:'Monochrome',d:'Pure grayscale',bg:'#f8f8f8',fg:'#374151'},
                   };
                   const m = presetMeta[profile.theme.preset] ?? presetMeta.MINIMAL;
                   return (
-                    <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-[#6366f1] bg-[#fafafe]">
-                      <div className="w-16 h-12 rounded-lg flex items-center justify-center shrink-0 border border-[#e2e8f0]" style={{backgroundColor:m.bg}}>
-                        <span className="text-base font-bold" style={{color:m.fg}}>Aa</span>
+                    <div className={`row ${css.selectedBox}`}>
+                      <div className={css.thumbBox} style={{backgroundColor:m.bg}}>
+                        <span className={css.strongMd} style={{color:m.fg}}>Aa</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#0f172a]">{m.l}</p>
-                        <p className="text-xs text-[#94a3b8]">{m.d}</p>
+                      <div className="grow">
+                        <p className={css.strongSm}>{m.l}</p>
+                        <p className={css.metaXs}>{m.d}</p>
                       </div>
-                      <button onClick={() => setShowThemeModal(true)} className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#e2e8f0] text-[#6366f1] bg-white hover:bg-[#eef2ff] transition-all">
+                      <button onClick={() => setShowThemeModal(true)} className="btn btn--outline btn--sm noshrink">
                         Change Style
                       </button>
                     </div>
@@ -1631,42 +1805,42 @@ export default function DashboardPage() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.18 }}
-                  className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                  className={css.scrim}
                   onClick={() => setShowThemeModal(false)}
                 >
                   <motion.div
                     initial={{ opacity: 0, y: 20, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.97 }}
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-sm border border-[#e2e8f0]"
+                    className={`${css.dialog} ${css.dialogNarrow}`}
                     onClick={e => e.stopPropagation()}
                   >
-                    <div className="px-5 py-4 border-b border-[#f1f5f9] flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-[#0f172a]">Choose a Style</h3>
-                      <button onClick={() => setShowThemeModal(false)} className="w-7 h-7 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <div className={css.dialogHead}>
+                      <h3 className={css.strongSm}>Choose a Style</h3>
+                      <button onClick={() => setShowThemeModal(false)} className={css.iconBtn}>
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </button>
                     </div>
-                    <div className="p-4 grid grid-cols-2 gap-3">
+                    <div className={`grid-2 ${css.presetPad}`}>
                       {([
-                        {p:'MINIMAL' as ThemePreset,l:'Minimal',d:'Clean & light',bg:'#ffffff',fg:'#0f172a'},
+                        {p:'MINIMAL' as ThemePreset,l:'Minimal',d:'Clean & light',bg:'#fdfbf3',fg:'#013e37'},
                         {p:'NEON' as ThemePreset,l:'Neon',d:'Dark & electric',bg:'#0a0a0a',fg:'#22d3ee'},
-                        {p:'GLASSMORPHISM' as ThemePreset,l:'Glass',d:'Frosted & airy',bg:'#0f172a',fg:'#a78bfa'},
-                        {p:'BRUTALIST' as ThemePreset,l:'Brutalist',d:'Bold & raw',bg:'#fffbe6',fg:'#ff5722'},
-                        {p:'SOFT' as ThemePreset,l:'Soft',d:'Gentle & pastel',bg:'#f9f5ff',fg:'#8b5cf6'},
+                        {p:'GLASSMORPHISM' as ThemePreset,l:'Glass',d:'Frosted & airy',bg:'#012b26',fg:'#ffefb3'},
+                        {p:'BRUTALIST' as ThemePreset,l:'Brutalist',d:'Bold & raw',bg:'#ffefb3',fg:'#000000'},
                         {p:'MONOCHROME' as ThemePreset,l:'Monochrome',d:'Pure grayscale',bg:'#f8f8f8',fg:'#374151'},
                       ]).map(o => (
                         <button key={o.p} onClick={() => {
-                          const pre = THEME_PRESETS[o.p];
-                          setProfile(pr => ({...pr, theme: {...pr.theme, preset: o.p, colors: pre.colors, texture: pre.texture}}));
+                          // A style is the whole look — take every field, not
+                          // just the colors, or "Brutalist" arrives in a sans
+                          // font with rounded buttons.
+                          setProfile(pr => ({...pr, theme: { preset: o.p, ...THEME_PRESETS[o.p] }}));
                           setShowThemeModal(false);
-                        }} className={`p-3 rounded-xl border-2 text-left transition-all ${profile.theme.preset===o.p ? 'border-[#6366f1] shadow-md' : 'border-[#e2e8f0] hover:border-[#c7d2fe]'}`}>
-                          <div className="w-full h-10 rounded-lg mb-2 flex items-center justify-center border border-[#e2e8f0]/50" style={{backgroundColor:o.bg}}>
-                            <span className="text-sm font-bold" style={{color:o.fg}}>Aa</span>
+                        }} className={css.preset} data-active={profile.theme.preset===o.p}>
+                          <div className={css.presetPreview} style={{backgroundColor:o.bg}}>
+                            <span className={css.strongSm} style={{color:o.fg}}>Aa</span>
                           </div>
-                          <p className="text-xs font-semibold text-[#0f172a]">{o.l}</p>
-                          <p className="text-[10px] text-[#94a3b8]">{o.d}</p>
+                          <p className={css.strongXs}>{o.l}</p>
+                          <p className={css.meta2Xs}>{o.d}</p>
                         </button>
                       ))}
                     </div>
@@ -1677,8 +1851,8 @@ export default function DashboardPage() {
 
               {/* ── Custom Colors ── */}
               <div>
-                <h3 className="text-xs font-semibold text-[#374151] mb-3">Custom Colors</h3>
-                <div className="space-y-3">
+                <h3 className={css.sectionLabel}>Custom Colors</h3>
+                <div className="col">
                   {([
                     {k:'background' as const, l:'Background'},
                     {k:'card' as const, l:'Cards'},
@@ -1686,21 +1860,21 @@ export default function DashboardPage() {
                     {k:'text' as const, l:'Text'},
                     {k:'descriptionColor' as const, l:'Description'},
                   ]).map(c => (
-                    <div key={c.k} className="flex items-center gap-3">
-                      <label className="text-xs font-medium text-[#64748b] w-20 shrink-0">{c.l}</label>
-                      <div className="relative shrink-0">
+                    <div key={c.k} className="row">
+                      <label className={`${css.metaXs} ${css.meterName}`}>{c.l}</label>
+                      <div className={css.thumbBox}>
                         <input
                           type="color"
                           value={profile.theme.colors[c.k].startsWith('rgba') ? '#808080' : profile.theme.colors[c.k]}
                           onChange={e => setProfile(p => ({...p, theme: {...p.theme, colors: {...p.theme.colors, [c.k]: e.target.value}}}))}
-                          className="w-8 h-8 rounded-lg cursor-pointer border border-[#e2e8f0] p-0.5"
+                          className={css.colorSwatch}
                         />
                       </div>
                       <input
                         type="text"
                         value={profile.theme.colors[c.k]}
                         onChange={e => setProfile(p => ({...p, theme: {...p.theme, colors: {...p.theme.colors, [c.k]: e.target.value}}}))}
-                        className="flex-1 px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs font-mono text-[#0f172a] outline-none focus:border-[#6366f1] transition-all"
+                        className="input input--sm grow mono"
                         placeholder="#ffffff"
                       />
                     </div>
@@ -1710,8 +1884,8 @@ export default function DashboardPage() {
 
               {/* ── Font Family ── */}
               <div>
-                <label className="block text-xs font-semibold text-[#374151] mb-2">Font Family</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="label">Font Family</label>
+                <div className="grid-2">
                   {([
                     {v:'SANS' as ThemeFont, l:'Sans', sample:'Clean Aa'},
                     {v:'SERIF' as ThemeFont, l:'Serif', sample:'Elegant Aa'},
@@ -1719,9 +1893,9 @@ export default function DashboardPage() {
                     {v:'DISPLAY' as ThemeFont, l:'Display', sample:'Grand Aa'},
                   ]).map(f => (
                     <button key={f.v} onClick={() => setProfile(p => ({...p, theme: {...p.theme, fontFamily: f.v}}))}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${(profile.theme.fontFamily ?? 'SANS') === f.v ? 'border-[#6366f1] bg-[#eef2ff]' : 'border-[#e2e8f0] hover:border-[#c7d2fe]'}`}>
-                      <p className="text-sm font-bold text-[#0f172a]" style={f.v === 'SERIF' ? {fontFamily:"Georgia,serif"} : f.v === 'MONO' ? {fontFamily:"monospace"} : f.v === 'DISPLAY' ? {fontFamily:"'Palatino Linotype',Palatino,serif"} : {}}>{f.sample}</p>
-                      <p className="text-[10px] text-[#64748b] mt-0.5">{f.l}</p>
+                      className={css.preset} data-active={(profile.theme.fontFamily ?? 'SANS') === f.v}>
+                      <p className={css.strongSm} style={f.v === 'SERIF' ? {fontFamily:"Georgia,serif"} : f.v === 'MONO' ? {fontFamily:"monospace"} : f.v === 'DISPLAY' ? {fontFamily:"'Palatino Linotype',Palatino,serif"} : {}}>{f.sample}</p>
+                      <p className={css.meta2Xs}>{f.l}</p>
                     </button>
                   ))}
                 </div>
@@ -1729,8 +1903,8 @@ export default function DashboardPage() {
 
               {/* ── Card Style ── */}
               <div>
-                <label className="block text-xs font-semibold text-[#374151] mb-2">Card Style</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="label">Card Style</label>
+                <div className="grid-2">
                   {([
                     {v:'FLAT' as CardStyle, l:'Flat', d:'Minimal border'},
                     {v:'SOFT_SHADOW' as CardStyle, l:'Soft Shadow', d:'Subtle depth'},
@@ -1738,9 +1912,9 @@ export default function DashboardPage() {
                     {v:'BRUTALIST' as CardStyle, l:'Brutalist', d:'Bold offset'},
                   ]).map(cs => (
                     <button key={cs.v} onClick={() => setProfile(p => ({...p, theme: {...p.theme, cardStyle: cs.v}}))}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${(profile.theme.cardStyle ?? 'FLAT') === cs.v ? 'border-[#6366f1] bg-[#eef2ff]' : 'border-[#e2e8f0] hover:border-[#c7d2fe]'}`}>
-                      <p className="text-xs font-semibold text-[#0f172a]">{cs.l}</p>
-                      <p className="text-[10px] text-[#94a3b8] mt-0.5">{cs.d}</p>
+                      className={css.preset} data-active={(profile.theme.cardStyle ?? 'FLAT') === cs.v}>
+                      <p className={css.strongXs}>{cs.l}</p>
+                      <p className={css.meta2Xs}>{cs.d}</p>
                     </button>
                   ))}
                 </div>
@@ -1748,8 +1922,8 @@ export default function DashboardPage() {
 
               {/* ── Button Style ── */}
               <div>
-                <label className="block text-xs font-semibold text-[#374151] mb-2">Link Button Style</label>
-                <div className="flex gap-2">
+                <label className="label">Link Button Style</label>
+                <div className="row">
                   {([
                     {v:'PILL' as ButtonStyle, l:'Pill'},
                     {v:'ROUNDED' as ButtonStyle, l:'Rounded'},
@@ -1757,7 +1931,7 @@ export default function DashboardPage() {
                     {v:'GHOST' as ButtonStyle, l:'Ghost'},
                   ]).map(bs => (
                     <button key={bs.v} onClick={() => setProfile(p => ({...p, theme: {...p.theme, buttonStyle: bs.v}}))}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${(profile.theme.buttonStyle ?? 'ROUNDED') === bs.v ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]'}`}>
+                      className="chip chip--grow" data-active={(profile.theme.buttonStyle ?? 'ROUNDED') === bs.v}>
                       {bs.l}
                     </button>
                   ))}
@@ -1766,70 +1940,57 @@ export default function DashboardPage() {
 
               {/* ── Texture Overlay ── */}
               <div>
-                <label className="block text-xs font-semibold text-[#374151] mb-2">Texture Overlay</label>
-                <div className="flex gap-2">
+                <label className="label">Texture Overlay</label>
+                <div className="row">
                   {(['NONE','DOTS','GRID','NOISE'] as ThemeTexture[]).map(t => (
                     <button key={t} onClick={() => setProfile(p => ({...p, theme: {...p.theme, texture: t}}))}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${profile.theme.texture===t ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]'}`}>
+                      className="chip chip--grow" data-active={profile.theme.texture===t}>
                       {t.charAt(0)+t.slice(1).toLowerCase()}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <motion.button
-                onClick={saveProfile}
-                disabled={profileSaving}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:shadow-lg hover:shadow-indigo-200/50 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
-              >
-                {profileSaving ? 'Saving…' : profileSaved ? '✓ Saved!' : 'Save Theme'}
-              </motion.button>
             </div>
           )}
-          </motion.div>
-          </AnimatePresence>
+          </div>
         </aside>
 
         {/* ═══ RIGHT COLUMN — LIVE PREVIEW ═══════════════ */}
-        <main className="hidden md:flex flex-1 items-center justify-center bg-[#f8fafc] p-8 lg:p-12">
-          <div className="w-full max-w-2xl">
-            <div className="flex items-center justify-between mb-4 px-1">
-              <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse"/><span className="text-xs font-medium text-[#94a3b8]">Live Preview</span></div>
+        <main className={css.preview}>
+          <div className={css.previewInner}>
+            <div className="row row--between">
+              <div className="row"><span className={css.liveDot}/><span className={css.metaXs}>Live Preview</span></div>
               {profile.username ? (
-                <a href={`https://${profile.username}.viefolio.com`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#6366f1] font-mono hover:underline">{profile.username}.viefolio.com ↗</a>
+                <a href={`https://${profile.username}.viefolio.com`} target="_blank" rel="noopener noreferrer" className={`${css.linkXs} mono`}>{profile.username}.viefolio.com ↗</a>
               ) : (
-                <span className="text-xs text-[#94a3b8] font-mono">{user.email?.split("@")[0] || "user"}.viefolio.com</span>
+                <span className={`${css.metaXs} mono`}>{user.email?.split("@")[0] || "user"}.viefolio.com</span>
               )}
             </div>
-            <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-2xl shadow-black/[0.04] overflow-hidden">
+            <div className={css.previewFrame}>
               {/* Browser chrome dots */}
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#f1f5f9] bg-[#fafbfc]">
-                <div className="flex gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#fca5a5]"/><span className="w-2.5 h-2.5 rounded-full bg-[#fcd34d]"/><span className="w-2.5 h-2.5 rounded-full bg-[#86efac]"/></div>
-                <div className="flex-1 flex justify-center"><div className="flex items-center gap-1.5 px-3 py-0.5 rounded-md bg-[#f1f5f9] text-[10px] text-[#94a3b8] font-mono"><svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>{profile.username || user.email?.split("@")[0] || "user"}.viefolio.com</div></div>
+              <div className={css.previewBar}>
+                <div className="row"><span className={css.dot}/><span className={css.dot}/><span className={css.dot}/></div>
+                <div className="grow row"><div className={css.urlChip}><svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={10} height={10}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>{profile.username || user.email?.split("@")[0] || "user"}.viefolio.com</div></div>
               </div>
               {/* Preview content */}
               <div style={{backgroundColor: profile.theme.colors.background}} className="overflow-y-auto max-h-[600px]">
-                <nav className="sticky top-0 z-10 backdrop-blur-md border-b px-6 h-14 flex items-center" style={{backgroundColor: `${profile.theme.colors.background}cc`, borderColor: profile.theme.preset === 'NEON' || profile.theme.preset === 'GLASSMORPHISM' ? 'rgba(255,255,255,0.08)' : '#f1f5f9'}}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${profile.theme.colors.accent}, ${profile.theme.colors.accent}cc)` }}>
-                      <span className="text-white font-bold text-[10px]">V</span>
-                    </div>
-                    <span className="text-sm font-semibold" style={{color: profile.theme.colors.text}}>{profile.fullName || profile.username || "Preview"}</span>
+                <nav className={css.previewBar} style={{backgroundColor: `${profile.theme.colors.background}cc`, borderColor: profile.theme.preset === 'NEON' || profile.theme.preset === 'GLASSMORPHISM' ? 'rgba(255,255,255,0.08)' : '#f1f5f9'}}>
+                  <div className="row">
+                    <img src="/logo.svg" alt="" aria-hidden="true" className={css.swatchChip} />
+                    <span className={css.strongSm} style={{color: profile.theme.colors.text}}>{profile.fullName || profile.username || "Preview"}</span>
                   </div>
                 </nav>
-                <div className="px-6 pb-16">
+                <div className={css.previewInner}>
                   <PortfolioView 
                     profile={profile} 
                     projects={profile.portfolioVisibility === "RELEASED_ONLY" ? projects.filter(p => p.status === "RELEASED" || p.status === "COMPLETED") : projects} 
                     skills={profile.skills} 
                   />
                 </div>
-                <footer className="border-t bg-white/5" style={{borderColor: profile.theme.preset === 'NEON' || profile.theme.preset === 'GLASSMORPHISM' ? 'rgba(255,255,255,0.08)' : '#f1f5f9'}}>
-                  <div className="px-6 py-4 flex items-center justify-between">
-                    <span className="text-xs text-[#94a3b8]">Powered by <span className="font-semibold" style={{ color: profile.theme.colors.accent }}>Viefolio</span></span>
+                <footer className={css.divideTop} style={{borderColor: profile.theme.preset === 'NEON' || profile.theme.preset === 'GLASSMORPHISM' ? 'rgba(255,255,255,0.08)' : '#f1f5f9'}}>
+                  <div className={css.dialogFoot}>
+                    <span className={css.metaXs}>Powered by <span className="font-semibold" style={{ color: profile.theme.colors.accent }}>Viefolio</span></span>
                   </div>
                 </footer>
               </div>
@@ -1840,11 +2001,11 @@ export default function DashboardPage() {
       {/* ─── Mobile Preview ──────────────────────────────── */}
       <button
         onClick={() => setShowMobilePreview(true)}
-        className="md:hidden fixed bottom-5 right-5 z-[80] inline-flex items-center gap-2 px-4 py-3 rounded-full text-xs font-semibold text-white shadow-xl shadow-indigo-300/40"
-        style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+        className={`btn btn--primary ${css.mobilePreviewBtn}`}
+       
         aria-label="Preview your portfolio"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={16} height={16}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         Preview
       </button>
       <AnimatePresence>
@@ -1854,19 +2015,19 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
             transition={{ type: "spring", duration: 0.35, bounce: 0 }}
-            className="md:hidden fixed inset-0 z-[90] bg-white flex flex-col"
+            className={css.mobileSheet}
           >
-            <div className="shrink-0 h-12 border-b border-[#f1f5f9] flex items-center justify-between px-4 bg-white">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse"/>
-                <span className="text-xs font-medium text-[#94a3b8]">Live Preview</span>
+            <div className={css.mobileSheetHead}>
+              <div className="row">
+                <span className={css.liveDot}/>
+                <span className={css.metaXs}>Live Preview</span>
               </div>
-              <button onClick={() => setShowMobilePreview(false)} className="w-8 h-8 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center text-[#64748b]" aria-label="Close preview">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              <button onClick={() => setShowMobilePreview(false)} className={css.iconBtn} aria-label="Close preview">
+                <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={20} height={20}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto" style={{ backgroundColor: profile.theme.colors.background }}>
-              <div className="px-4 pb-16">
+            <div className={css.mobileSheetBody} style={{ backgroundColor: profile.theme.colors.background }}>
+              <div className={css.mobileSheetBody}>
                 <PortfolioView
                   profile={profile}
                   projects={profile.portfolioVisibility === "RELEASED_ONLY" ? projects.filter(p => p.status === "RELEASED" || p.status === "COMPLETED") : projects}

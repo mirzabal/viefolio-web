@@ -1,0 +1,258 @@
+.page {
+  min-block-size: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-l) var(--space-m);
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Same butter bloom as the hero, so signing in feels like the same product. */
+.page::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -16rem;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: min(56rem, 140vw);
+  block-size: 30rem;
+  background: radial-gradient(ellipse 55% 55% at 50% 60%, var(--butter) 0%, transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.shell {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 26rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-block-end: var(--space-l);
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.brand img {
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  transition: transform var(--dur-hover) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .brand:hover img {
+    transform: rotate(-6deg) scale(1.05);
+  }
+}
+
+.card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-l);
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+}
+
+.head {
+  text-align: center;
+  margin-block-end: var(--space-l);
+}
+
+.head h1 {
+  font-size: var(--step-3);
+}
+
+.head p {
+  margin-block-start: var(--space-2xs);
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.appleBtn {
+  --btn-bg: #000;
+  --btn-fg: #fff;
+  --btn-border: #000;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .appleBtn:hover:not(:disabled) {
+    --btn-bg: #1a1a1a;
+    --btn-border: #1a1a1a;
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-block: var(--space-m);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--line);
+}
+
+/* A collapsed .collapse is 0px tall but still eats a flex gap, which left a
+   dead band above the submit button. Spacing moves onto the children, and a
+   collapse carries its own inside the clipped inner — so it costs nothing
+   while closed and animates in with the rest. */
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form > * + * {
+  margin-block-start: var(--space-s);
+}
+
+.form > :global(.collapse) {
+  margin-block-start: 0;
+}
+
+.form > :global(.collapse) :global(.collapse__inner) > * {
+  margin-block-start: var(--space-s);
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.linkBtn {
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--line);
+  transition: color var(--dur-hover) ease, text-decoration-color var(--dur-hover) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .linkBtn:hover {
+    color: var(--ink);
+    text-decoration-color: var(--ink);
+  }
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.inputAffix {
+  position: absolute;
+  inset-inline-end: 0.7rem;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  transition: color var(--dur-hover) ease;
+}
+
+button.inputAffix:hover {
+  color: var(--ink);
+}
+
+.hint {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+}
+
+.hint[data-tone="danger"] {
+  color: var(--danger);
+  font-family: var(--font-sans);
+}
+
+.terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-block-start: var(--space-s);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.terms a {
+  color: var(--ink);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.switcher {
+  margin-block-start: var(--space-m);
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+
+.switcher button {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--butter-deep);
+  text-decoration-thickness: 2px;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.switcher button:active {
+  transform: scale(0.97);
+}
+
+.legal {
+  margin-block-start: var(--space-m);
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  line-height: 1.6;
+}
+
+.legal a {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  transition: color var(--dur-hover) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .legal a:hover {
+    color: var(--ink);
+  }
+}
+
+/* Verification code entry — wide tracking so six digits read as six digits. */
+.codeInput {
+  text-align: center;
+  font-size: var(--step-2);
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+}

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import LegalPage, { LegalSection } from "@/components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Viefolio",
+  title: "Privacy Policy",
   description: "How Viefolio collects, uses, and protects your data.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {
@@ -35,7 +36,7 @@ export default function PrivacyPage() {
         <p>
           Your data is stored on Google Firebase (Firestore, Cloud Storage, and Authentication). Their
           handling of data is governed by{" "}
-          <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer" className="text-[#6366f1] underline">
+          <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">
             Google&rsquo;s Firebase privacy documentation
           </a>.
         </p>
@@ -78,7 +79,7 @@ export default function PrivacyPage() {
       <LegalSection title="9. Contact">
         <p>
           Privacy questions? Reach us at{" "}
-          <a href="mailto:support@viefolio.com" className="text-[#6366f1] underline">support@viefolio.com</a>.
+          <a href="mailto:support@viefolio.com">support@viefolio.com</a>.
         </p>
       </LegalSection>
     </LegalPage>

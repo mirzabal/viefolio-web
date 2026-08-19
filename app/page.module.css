@@ -1,0 +1,440 @@
+/* ── Shell ──────────────────────────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100dvh;
+}
+
+/* ── Hero ───────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  padding-block: clamp(3.5rem, 8vw, 7rem) clamp(3rem, 7vw, 6rem);
+  overflow: hidden;
+}
+
+/* A soft butter bloom behind the headline. Cheap, static, no JS. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -18rem;
+  inset-inline-start: 50%;
+  inline-size: min(72rem, 130vw);
+  block-size: 34rem;
+  translate: -50% 0;
+  background: radial-gradient(ellipse 60% 55% at 50% 60%, var(--butter) 0%, transparent 70%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.heroInner {
+  position: relative;
+  text-align: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--paper-raised);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+.badgeDot {
+  inline-size: 0.4rem;
+  block-size: 0.4rem;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.title {
+  margin-block-start: var(--space-m);
+  font-size: var(--step-6);
+  max-inline-size: 18ch;
+  margin-inline: auto;
+}
+
+/* The one word that carries the promise, set in the serif. */
+.titleAccent {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 60, "WONK" 1;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+.heroLede {
+  margin-block-start: var(--space-m);
+  margin-inline: auto;
+  max-inline-size: 52ch;
+}
+
+.heroActions {
+  margin-block-start: var(--space-l);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+@media (min-width: 34rem) {
+  .heroActions {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+.heroMeta {
+  margin-block-start: var(--space-s);
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+/* ── Browser mockup ─────────────────────────────────────── */
+.mockup {
+  margin-block-start: clamp(2.5rem, 6vw, 4.5rem);
+  margin-inline: auto;
+  max-inline-size: 56rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-l);
+  overflow: hidden;
+}
+
+.mockupBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 0.7rem 0.9rem;
+  border-block-end: 1px solid var(--line-soft);
+  background: var(--paper-sunk);
+}
+
+.mockupDots {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.mockupDots span {
+  inline-size: 0.6rem;
+  block-size: 0.6rem;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.mockupUrl {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.mockupUrl span {
+  padding: 0.2rem 0.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--paper-raised);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-3);
+}
+
+.mockupBody {
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  display: grid;
+  gap: var(--space-s);
+  grid-template-columns: 1fr;
+  background: linear-gradient(180deg, var(--paper-raised), var(--paper));
+}
+
+@media (min-width: 48rem) {
+  .mockupBody {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.miniCard {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+  padding: var(--space-s);
+  text-align: start;
+}
+
+.miniThumb {
+  block-size: 4.5rem;
+  border-radius: var(--radius-s);
+  display: grid;
+  place-items: center;
+  margin-block-end: 0.75rem;
+  background: var(--butter-wash);
+  color: var(--ink);
+}
+
+.miniThumb[data-tone="butter"] {
+  background: var(--butter);
+}
+.miniThumb[data-tone="ink"] {
+  background: var(--ink);
+  color: var(--butter);
+}
+
+.miniLineWide,
+.miniLineNarrow {
+  block-size: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--paper-sunk);
+}
+.miniLineWide {
+  inline-size: 70%;
+  margin-block-end: 0.4rem;
+}
+.miniLineNarrow {
+  inline-size: 100%;
+  block-size: 0.35rem;
+  margin-block-end: 0.7rem;
+}
+
+.miniTags {
+  display: flex;
+  gap: 0.3rem;
+  margin-block-end: 0.7rem;
+}
+
+.miniTag {
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-xs);
+  background: var(--paper-sunk);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+/* ── Sections ───────────────────────────────────────────── */
+.section {
+  padding-block: clamp(3.5rem, 9vw, 7rem);
+}
+
+.sectionSunk {
+  background: var(--paper-sunk);
+}
+
+.sectionHead {
+  max-inline-size: 44rem;
+  margin-inline: auto;
+  text-align: center;
+  margin-block-end: clamp(2rem, 5vw, 3.5rem);
+}
+
+.sectionHead h2 {
+  margin-block-start: var(--space-xs);
+}
+
+.sectionHead .lede {
+  margin-block-start: var(--space-s);
+}
+
+/* ── Feature rail ───────────────────────────────────────── */
+.railCard {
+  display: grid;
+  gap: var(--space-m);
+  align-items: center;
+  grid-template-columns: 1fr;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--paper-raised);
+}
+
+@media (min-width: 56rem) {
+  .railCard {
+    grid-template-columns: auto 1fr auto;
+    gap: var(--space-l);
+  }
+}
+
+.iconPad {
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: var(--radius-m);
+  display: grid;
+  place-items: center;
+  background: var(--butter);
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.themeSwatches {
+  display: none;
+}
+
+@media (min-width: 56rem) {
+  .themeSwatches {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.swatchDot {
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+}
+
+/* ── Grids ──────────────────────────────────────────────── */
+.grid3 {
+  display: grid;
+  gap: var(--space-s);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 44rem) {
+  .grid3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.grid4 {
+  display: grid;
+  gap: var(--space-s);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 34rem) {
+  .grid4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 56rem) {
+  .grid4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.featureCard {
+  padding: var(--space-m);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--paper-raised);
+}
+
+.featureCard h3 {
+  font-size: var(--step-1);
+  margin-block: 0.9rem 0.5rem;
+}
+
+.featureCard p {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+
+/* ── Steps ──────────────────────────────────────────────── */
+.steps {
+  display: grid;
+  gap: var(--space-l);
+  grid-template-columns: 1fr;
+  counter-reset: step;
+}
+
+@media (min-width: 48rem) {
+  .steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.step {
+  position: relative;
+  padding-block-start: var(--space-s);
+  border-block-start: 2px solid var(--ink);
+}
+
+.stepNum {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 50, "WONK" 1;
+  font-size: var(--step-3);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink-3);
+}
+
+.step h3 {
+  font-size: var(--step-1);
+  margin-block: 0.6rem 0.4rem;
+}
+
+.step p {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+
+/* ── Closing CTA ────────────────────────────────────────── */
+.cta {
+  padding-block: clamp(3.5rem, 9vw, 7rem);
+}
+
+.ctaCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  padding: clamp(2.5rem, 7vw, 5rem) clamp(1.5rem, 5vw, 4rem);
+  text-align: center;
+}
+
+.ctaCard::after {
+  content: "";
+  position: absolute;
+  inset-block-end: -14rem;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 40rem;
+  block-size: 24rem;
+  background: radial-gradient(ellipse at center, var(--butter) 0%, transparent 70%);
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.ctaCard > * {
+  position: relative;
+}
+
+.ctaCard h2 {
+  max-inline-size: 16ch;
+  margin-inline: auto;
+}
+
+.ctaActions {
+  margin-block-start: var(--space-l);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+@media (min-width: 34rem) {
+  .ctaActions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}

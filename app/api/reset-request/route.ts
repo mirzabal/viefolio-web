@@ -48,7 +48,7 @@ export async function POST(req: Request) {
             <h2 style="color:#0f172a;margin:0 0 8px">Reset your password</h2>
             <p style="color:#64748b;font-size:14px;line-height:1.6">Click the button below to choose a new password for your Viefolio account. Only the most recent reset email works.</p>
             <p style="margin:24px 0">
-              <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;border-radius:12px;background:#6366f1;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">Reset Password</a>
+              <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;border-radius:12px;background:#013e37;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none">Reset Password</a>
             </p>
             <p style="color:#94a3b8;font-size:12px;line-height:1.6">If the button doesn't work, copy this link into your browser:<br>${resetUrl}</p>
             <p style="color:#94a3b8;font-size:12px;line-height:1.6">If you didn't request this, you can ignore this email — your password won't change.</p>

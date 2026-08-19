@@ -1,0 +1,218 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: var(--space-m);
+  overflow-y: auto;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--ink-deep);
+}
+
+.scrim::after {
+  content: "";
+  position: absolute;
+  inset-block-start: -20rem;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: min(60rem, 150vw);
+  block-size: 40rem;
+  background: radial-gradient(ellipse at center, var(--butter) 0%, transparent 70%);
+  opacity: 0.12;
+}
+
+.dialog {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+  max-inline-size: 46rem;
+  outline: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-block-end: var(--space-l);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: -0.03em;
+  color: var(--butter);
+}
+
+.brandMark {
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  object-fit: contain;
+}
+
+.head {
+  text-align: center;
+  margin-block-end: var(--space-xl);
+}
+
+.head h1 {
+  font-size: var(--step-4);
+  color: var(--butter);
+}
+
+.head p {
+  margin-block-start: var(--space-s);
+  margin-inline: auto;
+  max-inline-size: 42ch;
+  color: var(--on-ink-2);
+}
+
+.grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, 1fr);
+  margin-block-end: var(--space-xl);
+}
+
+@media (min-width: 46rem) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: var(--space-m) var(--space-s);
+  border: 1.5px solid var(--line-on-ink-soft);
+  border-radius: var(--radius-l);
+  background: rgb(255 239 179 / 0.03);
+  text-align: center;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-hover) ease,
+    border-color var(--dur-hover) ease;
+}
+
+.option:active {
+  transform: scale(0.97);
+}
+
+/* The sliding .glow carries the selected border, so the card itself must not
+   also draw one — two rings on one card read as a rendering bug. */
+.option[aria-pressed="true"] {
+  background: rgb(255 239 179 / 0.06);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .option:hover {
+    background: rgb(255 239 179 / 0.08);
+    border-color: var(--line-on-ink);
+  }
+}
+
+/* A near-transparent butter wash on a butter-tinted card was invisible against
+   the butter text. The slider is a ring now, so it reads as an indicator
+   instead of a smudge. */
+.glow {
+  position: absolute;
+  inset: -1.5px;
+  border: 1.5px solid var(--butter);
+  border-radius: var(--radius-l);
+  background: rgb(255 239 179 / 0.07);
+  box-shadow: 0 0 0 4px rgb(255 239 179 / 0.08);
+  pointer-events: none;
+}
+
+.optionIcon {
+  position: relative;
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: var(--radius-m);
+  display: grid;
+  place-items: center;
+  background: rgb(255 239 179 / 0.12);
+  color: var(--on-ink-2);
+  transition: background-color var(--dur-hover) ease, color var(--dur-hover) ease;
+}
+
+.option[aria-pressed="true"] .optionIcon {
+  background: var(--butter);
+  color: var(--ink-deep);
+}
+
+.optionText {
+  position: relative;
+}
+
+.optionTitle {
+  display: block;
+  font-size: var(--step-0);
+  font-weight: 700;
+  color: var(--on-ink-2);
+  transition: color var(--dur-hover) ease;
+}
+
+.option[aria-pressed="true"] .optionTitle {
+  color: var(--butter);
+}
+
+.optionDesc {
+  display: block;
+  margin-block-start: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--on-ink-2);
+  opacity: 0.7;
+}
+
+.tick {
+  position: absolute;
+  inset-block-start: 0.6rem;
+  inset-inline-end: 0.6rem;
+  inline-size: 1.4rem;
+  block-size: 1.4rem;
+  border-radius: 50%;
+  background: var(--butter);
+  color: var(--ink-deep);
+  display: grid;
+  place-items: center;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.error {
+  color: #ffb4a2;
+  font-size: var(--step--1);
+}
+
+.confirm {
+  --btn-bg: var(--butter);
+  --btn-fg: var(--ink-deep);
+  --btn-border: var(--butter);
+  min-inline-size: 12rem;
+}
+
+.confirm:disabled {
+  --btn-bg: rgb(255 239 179 / 0.12);
+  --btn-fg: var(--on-ink-2);
+  --btn-border: transparent;
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .confirm:hover:not(:disabled) {
+    --btn-bg: var(--butter-deep);
+    --btn-border: var(--butter-deep);
+  }
+}

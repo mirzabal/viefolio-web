@@ -3,24 +3,24 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signOut,
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
   OAuthProvider,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { GoogleIcon, AppleIcon, Spinner, Icon } from "@/lib/icons";
+import a from "../auth.module.css";
 
 const googleProvider = new GoogleAuthProvider();
 const appleProvider = new OAuthProvider("apple.com");
 appleProvider.addScope("email");
 appleProvider.addScope("name");
-
-const ease = [0.22, 1, 0.36, 1] as const;
 
 // Firestore is only needed once, right after a successful sign-in — load it
 // dynamically so the login page doesn't bundle the whole database SDK.
@@ -58,7 +58,7 @@ async function registerProfile(uid: string, fullName: string, username: string) 
     import("@/lib/db"),
   ]);
   if (!username) {
-    await setDoc(doc(db, "profiles", uid), { fullName, title: "", bio: "", location: "", username: "", avatarUrl: "", userId: uid }, { merge: true });
+    await setDoc(doc(db, "profiles", uid), { fullName, title: "", bio: "", location: "", username: "", avatarUrl: "", userId: uid, emailVerified: false }, { merge: true });
     return;
   }
   const legacy = await getDocs(query(collection(db, "profiles"), where("username", "==", username)));
@@ -67,24 +67,59 @@ async function registerProfile(uid: string, fullName: string, username: string) 
     const res = await tx.get(doc(db, "usernames", username));
     if (res.exists() && res.data()?.userId !== uid) throw new Error("USERNAME_TAKEN");
     tx.set(doc(db, "usernames", username), { userId: uid });
-    tx.set(doc(db, "profiles", uid), { fullName, title: "", bio: "", location: "", username, avatarUrl: "", userId: uid }, { merge: true });
+    tx.set(doc(db, "profiles", uid), { fullName, title: "", bio: "", location: "", username, avatarUrl: "", userId: uid, emailVerified: false }, { merge: true });
   });
+}
+
+// Codes ride the same OTP endpoint the password change uses — same hashing,
+// expiry and attempt limits, only the purpose differs.
+async function requestEmailCode(user: { getIdToken: () => Promise<string> }) {
+  const res = await fetch("/api/password-otp/request", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ purpose: "EMAIL_VERIFY" }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't send the code.");
+}
+
+/* Collapsible without measuring height in JS. grid-template-rows 0fr → 1fr
+   (see .collapse in globals.css) replaces framer-motion's height:auto
+   animation, which forced a layout pass on every frame — and takes the whole
+   animation library off the auth critical path. */
+function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div className="collapse" data-open={open} aria-hidden={!open}>
+      <div className="collapse__inner">{children}</div>
+    </div>
+  );
 }
 
 export default function LoginPage() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
+  /* There is no separate /signup route — "create an account" CTAs link to
+     /login#signup and land here. A hash rather than a query param so the page
+     stays statically prerendered (useSearchParams would force it dynamic). */
+  useEffect(() => {
+    if (window.location.hash === "#signup") setIsSignUp(true);
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const usernameTimer = useRef<NodeJS.Timeout | null>(null);
+  const spinnerTimer = useRef<NodeJS.Timeout | null>(null);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  // Post-sign-up code step. The account exists by now; this gates publishing,
+  // not access — "I'll do this later" drops them straight into the dashboard.
+  const [verifyStep, setVerifyStep] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyBusy, setVerifyBusy] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
@@ -92,13 +127,19 @@ export default function LoginPage() {
     const clean = sanitizeUsername(value);
     setUsername(clean);
     if (usernameTimer.current) clearTimeout(usernameTimer.current);
+    if (spinnerTimer.current) clearTimeout(spinnerTimer.current);
     if (clean.length < 2) { setUsernameStatus("idle"); return; }
-    setUsernameStatus("checking");
+    // Hold the previous status for 300ms. Flipping to a spinner on every
+    // keystroke made the indicator flicker the whole time you were typing.
+    spinnerTimer.current = setTimeout(() => setUsernameStatus("checking"), 300);
     usernameTimer.current = setTimeout(async () => {
       try {
-        setUsernameStatus(await checkUsernameFree(clean) ? "available" : "taken");
+        const free = await checkUsernameFree(clean);
+        if (spinnerTimer.current) clearTimeout(spinnerTimer.current);
+        setUsernameStatus(free ? "available" : "taken");
       } catch {
         // Read denied or offline — the sign-up transaction still enforces uniqueness
+        if (spinnerTimer.current) clearTimeout(spinnerTimer.current);
         setUsernameStatus("idle");
       }
     }, 500);
@@ -106,11 +147,25 @@ export default function LoginPage() {
 
   // Already signed in? Go straight to the dashboard.
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) router.replace("/dashboard");
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) return;
+      // The cached user's emailVerified can be stale — reload before gating.
+      await u.reload().catch(() => {});
+      // An unverified password account stays on the code step instead of being
+      // bounced into a dashboard that would only bounce it straight back.
+      if (!u.emailVerified && u.providerData.some(p => p.providerId === "password")) {
+        setVerifyStep(true);
+        return;
+      }
+      router.replace("/dashboard");
     });
     return () => unsub();
   }, [router]);
+
+  useEffect(() => () => {
+    if (usernameTimer.current) clearTimeout(usernameTimer.current);
+    if (spinnerTimer.current) clearTimeout(spinnerTimer.current);
+  }, []);
 
   async function handleForgotPassword() {
     setError("");
@@ -187,7 +242,6 @@ export default function LoginPage() {
       if (!fullName.trim()) { setError("Please enter your name."); return; }
       if (username.length < 2) { setError("Username must be at least 2 characters."); return; }
       if (usernameStatus === "taken") { setError(`"${username}" is already taken — try ${username}-dev or ${username}hq.`); return; }
-      if (!acceptTerms) { setError("Please accept the Terms of Service and Privacy Policy."); return; }
     }
     setLoading(true);
     try {
@@ -205,9 +259,22 @@ export default function LoginPage() {
             throw err;
           }
         }
+
+        // Email/password only — Google and Apple hand us an already-verified
+        // address. The profile exists by now; the code step gates the app.
+        await requestEmailCode(result.user).catch(() => {});
+        setVerifyStep(true);
+        setInfo(`We sent a 6-digit code to ${email}.`);
+        return;
       } else {
         const result = await signInWithEmailAndPassword(auth, email, password);
         await ensureProfile(result.user.uid, result.user.displayName);
+        if (!result.user.emailVerified) {
+          await requestEmailCode(result.user).catch(() => {});
+          setVerifyStep(true);
+          setInfo(`We sent a 6-digit code to ${email}.`);
+          return;
+        }
       }
       router.push("/dashboard");
     } catch (err: unknown) {
@@ -227,327 +294,259 @@ export default function LoginPage() {
     }
   }
 
+  async function submitVerifyCode() {
+    const user = auth.currentUser;
+    if (!user) return;
+    setVerifyBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/verify-email", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ code: verifyCode }),
+      });
+      if (!res.ok) {
+        setError((await res.json().catch(() => ({}))).error || "Couldn't verify that code.");
+        return;
+      }
+      // The flag lives in the token; without a forced refresh the client keeps
+      // the stale one and the Firestore rules still see an unverified caller.
+      await user.getIdToken(true);
+      router.push("/dashboard");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setVerifyBusy(false);
+    }
+  }
+
+  async function resendVerifyCode() {
+    const user = auth.currentUser;
+    if (!user) return;
+    setVerifyBusy(true);
+    setError("");
+    try {
+      await requestEmailCode(user);
+      setInfo("New code sent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't send the code.");
+    } finally {
+      setVerifyBusy(false);
+    }
+  }
+
+  const submitDisabled =
+    loading ||
+    (isSignUp && (usernameStatus === "checking" || usernameStatus === "taken" || (!!confirmPassword && confirmPassword !== password)));
+
+
   return (
-    <MotionConfig reducedMotion="user">
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 py-8">
-      {/* Background glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full opacity-30 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)" }}
-        />
-      </div>
+    <div className={a.page}>
+      <div className={a.shell}>
+        <Link href="/" className={a.brand}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" aria-hidden="true" />
+          Viefolio
+        </Link>
 
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease }}
-          className="text-center mb-8"
-        >
-          <Link href="/" className="inline-flex items-center">
-            <motion.div
-              whileHover={{ scale: 1.08, rotate: 3 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="w-20 h-20"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="Viefolio" className="w-20 h-20" />
-            </motion.div>
-            <span className="text-3xl font-semibold text-[#0f172a] tracking-tight">Viefolio</span>
-          </Link>
-        </motion.div>
-
-        {/* Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 28, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.55, ease, delay: 0.08 }}
-          className="bg-white rounded-2xl shadow-xl shadow-black/[0.04] border border-[#f1f5f9] p-8 md:p-10"
-        >
-          {/* Heading — animate on mode switch */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={isSignUp ? "signup-heading" : "signin-heading"}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.22, ease }}
-              className="text-center mb-8"
-            >
-              <h1 className="text-2xl font-bold text-[#0f172a] mb-2">
-                {isSignUp ? "Create your account" : "Welcome back"}
-              </h1>
-              <p className="text-sm text-[#64748b]">
-                {isSignUp ? "Start building your living portfolio" : "Sign in to continue to your dashboard"}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Google Button */}
-          <motion.button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading}
-            whileHover={{ scale: 1.015, boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 400, damping: 28 }}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-[#e2e8f0] bg-white text-[#0f172a] text-sm font-semibold transition-colors duration-150 hover:bg-[#f8fafc] hover:border-[#cbd5e1] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {googleLoading ? (
-              <svg className="w-5 h-5 animate-spin text-[#94a3b8]" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-            )}
-            {googleLoading ? "Signing in…" : "Continue with Google"}
-          </motion.button>
-
-          {/* Apple Button */}
-          <motion.button
-            type="button"
-            onClick={handleAppleSignIn}
-            disabled={appleLoading}
-            whileHover={{ scale: 1.015, boxShadow: "0 4px 16px rgba(0,0,0,0.2)" }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 400, damping: 28 }}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-black text-white text-sm font-semibold mt-3 transition-colors duration-150 hover:bg-[#1a1a1a] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {appleLoading ? (
-              <svg className="w-5 h-5 animate-spin text-white/60" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-            )}
-            {appleLoading ? "Signing in…" : "Continue with Apple"}
-          </motion.button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-[#e2e8f0]" />
-            <span className="text-xs text-[#94a3b8] font-medium">or continue with email</span>
-            <div className="flex-1 h-px bg-[#e2e8f0]" />
+        {/* One entrance for the card. The old page staggered the logo, card,
+            each field and the footer across ~1s — and returning users sat
+            through it every single time. */}
+        <div className={`${a.card} rise`}>
+          <div className={a.head}>
+            <h1>{verifyStep ? "Check your email" : isSignUp ? "Create your account" : "Welcome back"}</h1>
+            <p>{verifyStep
+              ? "Enter the 6-digit code we sent you. It expires in 10 minutes."
+              : isSignUp ? "Start building your living portfolio" : "Sign in to continue to your dashboard"}</p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {verifyStep ? (
+            <form className={a.form} onSubmit={e => { e.preventDefault(); submitVerifyCode(); }}>
+              <input
+                inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6-digit code"
+                value={verifyCode} onChange={e => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+                className={`input ${a.codeInput}`} autoFocus
+              />
+
+              <Collapse open={!!info}>
+                <div className="note" data-tone="success" role="status">
+                  <Icon name="checkCircle" size={16} />
+                  <span>{info}</span>
+                </div>
+              </Collapse>
+
+              <Collapse open={!!error}>
+                <div className="note" data-tone="danger" role="alert">
+                  <Icon name="alert" size={16} />
+                  <span>{error}</span>
+                </div>
+              </Collapse>
+
+              <button type="submit" disabled={verifyBusy || verifyCode.length !== 6} className="btn btn--primary btn--lg btn--block">
+                {verifyBusy ? <><Spinner size={16} />Verifying…</> : "Verify email"}
+              </button>
+              <button type="button" onClick={resendVerifyCode} disabled={verifyBusy} className="btn btn--quiet btn--sm btn--block">
+                Didn&apos;t get it? Resend
+              </button>
+              <button
+                type="button"
+                onClick={async () => { await signOut(auth); setVerifyStep(false); setVerifyCode(""); setInfo(""); setError(""); }}
+                className="btn btn--quiet btn--sm btn--block"
+              >
+                Use a different account
+              </button>
+            </form>
+          ) : (
+            <>
+          <div className={a.providers}>
+            <button type="button" onClick={handleGoogleSignIn} disabled={googleLoading} className="btn btn--outline btn--block">
+              {googleLoading ? <Spinner size={18} /> : <GoogleIcon size={18} />}
+              {googleLoading ? "Signing in…" : "Continue with Google"}
+            </button>
+            <button type="button" onClick={handleAppleSignIn} disabled={appleLoading} className={`btn btn--block ${a.appleBtn}`}>
+              {appleLoading ? <Spinner size={18} /> : <AppleIcon size={18} />}
+              {appleLoading ? "Signing in…" : "Continue with Apple"}
+            </button>
+          </div>
+
+          <div className={a.divider}>or with email</div>
+
+          <form onSubmit={handleSubmit} className={a.form}>
             {/* Sign-up only: name + username */}
-            <AnimatePresence initial={false}>
-              {isSignUp && (
-                <motion.div
-                  key="signup-fields"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.28, ease }}
-                  className="space-y-4 overflow-hidden"
-                >
-                  <div>
-                    <label htmlFor="fullName" className="block text-sm font-medium text-[#374151] mb-1.5">Full Name</label>
-                    <input id="fullName" type="text" autoComplete="name" required={isSignUp} value={fullName}
-                      onChange={e => setFullName(e.target.value)} placeholder="Your name"
-                      className="w-full px-4 py-3 rounded-xl border border-[#e2e8f0] bg-white text-[#0f172a] text-sm placeholder:text-[#94a3b8] outline-none transition-all duration-200 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10"/>
+            <Collapse open={isSignUp}>
+              <div className="col" style={{ "--gap": "var(--space-s)" } as React.CSSProperties}>
+                <div className="field">
+                  <label htmlFor="fullName" className="label">Full name</label>
+                  <input
+                    id="fullName" type="text" autoComplete="name" required={isSignUp}
+                    value={fullName} onChange={e => setFullName(e.target.value)}
+                    placeholder="Your name" className="input"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="username" className="label">Username</label>
+                  <div className={a.inputWrap}>
+                    <input
+                      id="username" type="text" autoComplete="off" required={isSignUp}
+                      value={username} onChange={e => onUsernameChange(e.target.value)}
+                      placeholder="username" aria-describedby="username-hint"
+                      data-invalid={usernameStatus === "taken"}
+                      className="input" style={{ paddingInlineEnd: "2.4rem" }}
+                    />
+                    <span className={a.inputAffix}>
+                      {usernameStatus === "checking" && <Spinner size={16} />}
+                      {usernameStatus === "available" && (
+                        <span style={{ color: "var(--success)", display: "grid" }}><Icon name="checkCircle" size={16} /></span>
+                      )}
+                      {usernameStatus === "taken" && (
+                        <span style={{ color: "var(--danger)", display: "grid" }}><Icon name="xCircle" size={16} /></span>
+                      )}
+                    </span>
                   </div>
-                  <div>
-                    <label htmlFor="username" className="block text-sm font-medium text-[#374151] mb-1.5">Username</label>
-                    <div className="relative">
-                      <input id="username" type="text" autoComplete="off" required={isSignUp} value={username}
-                        onChange={e => onUsernameChange(e.target.value)} placeholder="username"
-                        className={`w-full px-4 py-3 pr-10 rounded-xl border bg-white text-[#0f172a] text-sm placeholder:text-[#94a3b8] outline-none transition-all duration-200 focus:ring-2 focus:ring-[#6366f1]/10 ${usernameStatus === "taken" ? "border-red-300 focus:border-red-400" : "border-[#e2e8f0] focus:border-[#6366f1]"}`}/>
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                        {usernameStatus === "checking" && (
-                          <svg className="w-4 h-4 animate-spin text-[#94a3b8]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                        )}
-                        {usernameStatus === "available" && (
-                          <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        )}
-                        {usernameStatus === "taken" && (
-                          <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        )}
-                      </span>
-                    </div>
-                    <p className={`text-xs mt-1.5 ${usernameStatus === "taken" ? "text-red-500" : "text-[#94a3b8]"}`}>
-                      {usernameStatus === "taken"
-                        ? `"${username}" is taken — try ${username}-dev or ${username}hq`
-                        : `${username || "yourname"}.viefolio.com`}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <p id="username-hint" className={a.hint} data-tone={usernameStatus === "taken" ? "danger" : undefined}>
+                    {usernameStatus === "taken"
+                      ? `"${username}" is taken — try ${username}-dev or ${username}hq`
+                      : `${username || "yourname"}.viefolio.com`}
+                  </p>
+                </div>
+              </div>
+            </Collapse>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease, delay: 0.18 }}
-            >
-              <label htmlFor="email" className="block text-sm font-medium text-[#374151] mb-1.5">Email</label>
-              <input id="email" type="email" autoComplete="email" required value={email}
-                onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
-                className="w-full px-4 py-3 rounded-xl border border-[#e2e8f0] bg-white text-[#0f172a] text-sm placeholder:text-[#94a3b8] outline-none transition-all duration-200 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10"/>
-            </motion.div>
+            <div className="field">
+              <label htmlFor="email" className="label">Email</label>
+              <input
+                id="email" type="email" autoComplete="email" required autoFocus
+                value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com" className="input"
+              />
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease, delay: 0.24 }}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="password" className="block text-sm font-medium text-[#374151]">Password</label>
+            <div className="field">
+              <div className={a.labelRow}>
+                <label htmlFor="password" className="label">Password</label>
                 {!isSignUp && (
-                  <button type="button" onClick={handleForgotPassword} className="text-xs font-medium text-[#6366f1] hover:text-[#4f46e5] transition-colors">
+                  <button type="button" onClick={handleForgotPassword} className={a.linkBtn}>
                     Forgot password?
                   </button>
                 )}
               </div>
-              <input id="password" type="password" autoComplete={isSignUp ? "new-password" : "current-password"}
-                required minLength={6} value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#e2e8f0] bg-white text-[#0f172a] text-sm placeholder:text-[#94a3b8] outline-none transition-all duration-200 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/10"/>
-            </motion.div>
-
-            {/* Sign-up only: confirm password */}
-            <AnimatePresence initial={false}>
-              {isSignUp && (
-                <motion.div
-                  key="confirm-password"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.28, ease }}
-                  className="overflow-hidden"
+              <div className={a.inputWrap}>
+                <input
+                  id="password" type={showPassword ? "text" : "password"}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  required minLength={6} value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••" className="input" style={{ paddingInlineEnd: "2.6rem" }}
+                />
+                <button
+                  type="button" onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className={a.inputAffix}
                 >
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#374151] mb-1.5">Confirm Password</label>
-                  <input id="confirmPassword" type="password" autoComplete="new-password"
-                    required={isSignUp} minLength={6} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className={`w-full px-4 py-3 rounded-xl border bg-white text-[#0f172a] text-sm placeholder:text-[#94a3b8] outline-none transition-all duration-200 focus:ring-2 focus:ring-[#6366f1]/10 ${confirmPassword && confirmPassword !== password ? "border-red-300 focus:border-red-400" : "border-[#e2e8f0] focus:border-[#6366f1]"}`}/>
-                  {confirmPassword && confirmPassword !== password && (
-                    <p className="text-xs mt-1.5 text-red-500">Passwords don&apos;t match</p>
-                  )}
-                  <label className="flex items-start gap-2.5 mt-4 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={acceptTerms}
-                      onChange={e => setAcceptTerms(e.target.checked)}
-                      className="w-4 h-4 mt-0.5 rounded accent-[#6366f1] shrink-0"
-                    />
-                    <span className="text-xs text-[#64748b] leading-relaxed">
-                      I agree to Viefolio&apos;s{" "}
-                      <a href="/terms" target="_blank" className="font-semibold text-[#6366f1] hover:text-[#4f46e5] underline">Terms of Service</a>{" "}
-                      and{" "}
-                      <a href="/privacy" target="_blank" className="font-semibold text-[#6366f1] hover:text-[#4f46e5] underline">Privacy Policy</a>.
-                    </span>
-                  </label>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <Icon name={showPassword ? "eyeOff" : "eye"} size={17} />
+                </button>
+              </div>
+            </div>
 
-            {/* Info (e.g. password reset sent) */}
-            <AnimatePresence>
-              {info && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, y: -6 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -6 }}
-                  transition={{ duration: 0.22, ease }}
-                  className="overflow-hidden"
-                >
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                    <svg className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p className="text-sm text-emerald-700">{info}</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Sign-up only: confirm password + terms */}
+            <Collapse open={isSignUp}>
+              <div className="field">
+                <label htmlFor="confirmPassword" className="label">Confirm password</label>
+                <input
+                  id="confirmPassword" type="password" autoComplete="new-password"
+                  required={isSignUp} minLength={6} value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••"
+                  data-invalid={!!confirmPassword && confirmPassword !== password}
+                  className="input"
+                />
+                {confirmPassword && confirmPassword !== password && (
+                  <p className={a.hint} data-tone="danger">Passwords don&apos;t match</p>
+                )}
+                
+              </div>
+            </Collapse>
 
-            {/* Error */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, y: -6 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: -6 }}
-                  transition={{ duration: 0.22, ease }}
-                  className="overflow-hidden"
-                >
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-100">
-                    <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
-                    </svg>
-                    <p className="text-sm text-red-600">{error}</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <Collapse open={!!info}>
+              <div className="note" data-tone="success" role="status">
+                <Icon name="checkCircle" size={16} />
+                <span>{info}</span>
+              </div>
+            </Collapse>
 
-            {/* Submit */}
-            <motion.button
-              type="submit"
-              disabled={loading || (isSignUp && (usernameStatus === "checking" || usernameStatus === "taken" || (!!confirmPassword && confirmPassword !== password) || !acceptTerms))}
-              whileHover={{ scale: 1.015, boxShadow: "0 8px 24px rgba(99,102,241,0.3)" }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease, delay: 0.3 } }}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-            >
+            <Collapse open={!!error}>
+              <div className="note" data-tone="danger" role="alert">
+                <Icon name="alert" size={16} />
+                <span>{error}</span>
+              </div>
+            </Collapse>
+
+            <button type="submit" disabled={submitDisabled} className="btn btn--primary btn--lg btn--block">
               {loading ? (
-                <span className="inline-flex items-center gap-2">
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                <>
+                  <Spinner size={16} />
                   {isSignUp ? "Creating account…" : "Signing in…"}
-                </span>
-              ) : isSignUp ? "Create Account" : "Sign In"}
-            </motion.button>
+                </>
+              ) : isSignUp ? "Create account" : "Sign in"}
+            </button>
           </form>
 
-          {/* Toggle */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-[#64748b]">
-              {isSignUp ? "Already have an account?" : "Don’t have an account?"}{" "}
-              <motion.button
-                type="button"
-                onClick={() => { setIsSignUp(!isSignUp); setError(""); setInfo(""); setConfirmPassword(""); setAcceptTerms(false); }}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                className="font-semibold text-[#6366f1] hover:text-[#4f46e5] transition-colors"
-              >
-                {isSignUp ? "Sign in" : "Create one"}
-              </motion.button>
-            </p>
-          </div>
-        </motion.div>
+          <p className={a.switcher}>
+            {isSignUp ? "Already have an account?" : "Don’t have an account?"}{" "}
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(!isSignUp); setError(""); setInfo(""); setConfirmPassword(""); }}
+            >
+              {isSignUp ? "Sign in" : "Create one"}
+            </button>
+          </p>
+            </>
+          )}
+        </div>
 
-        {/* Footer */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, ease, delay: 0.5 }}
-          className="text-center text-xs text-[#94a3b8] mt-6"
-        >
-          By continuing, you agree to Viefolio&apos;s{" "}
-          <a href="/terms" className="underline hover:text-[#64748b] transition-colors">Terms</a>{" "}
-          and{" "}
-          <a href="/privacy" className="underline hover:text-[#64748b] transition-colors">Privacy Policy</a>.
-        </motion.p>
+        <p className={`${a.legal} rise delay-1`}>
+          By continuing you agree to our <a href="/terms">Terms</a> and{" "}
+          <a href="/privacy">Privacy Policy</a>.
+        </p>
       </div>
     </div>
-    </MotionConfig>
   );
 }

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import LegalPage, { LegalSection } from "@/components/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Viefolio",
+  title: "Terms of Service",
   description: "The terms and conditions for using Viefolio.",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {
@@ -39,7 +40,7 @@ export default function TermsPage() {
 
       <LegalSection title="4. Usernames &amp; Subdomains">
         <p>
-          Portfolio subdomains (e.g. <span className="font-mono text-xs">yourname.viefolio.com</span>) are
+          Portfolio subdomains (e.g. <span className="mono">yourname.viefolio.com</span>) are
           granted on a first-come, first-served basis. We may reclaim usernames that impersonate others,
           infringe trademarks, or remain inactive for an extended period.
         </p>
@@ -77,7 +78,7 @@ export default function TermsPage() {
       <LegalSection title="9. Contact">
         <p>
           Questions about these terms? Reach us at{" "}
-          <a href="mailto:support@viefolio.com" className="text-[#6366f1] underline">support@viefolio.com</a>.
+          <a href="mailto:support@viefolio.com">support@viefolio.com</a>.
         </p>
       </LegalSection>
     </LegalPage>

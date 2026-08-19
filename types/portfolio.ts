@@ -65,7 +65,10 @@ export type UserInfoLayout = 'LEFT' | 'RIGHT' | 'CENTER';
 export type AccountType = 'DEVELOPER' | 'DESIGNER' | 'CREATOR' | 'STUDENT';
 
 /* ─── Theme Engine ──────────────────────────────────── */
-export type ThemePreset = 'MINIMAL' | 'NEON' | 'GLASSMORPHISM' | 'BRUTALIST' | 'SOFT' | 'MONOCHROME';
+/* SOFT was a lavender pastel from the old template — it has no home in the
+   butter/ink palette, so it's gone. Stored 'SOFT' profiles migrate to MINIMAL
+   on load (see the dashboard profile listener). */
+export type ThemePreset = 'MINIMAL' | 'NEON' | 'GLASSMORPHISM' | 'BRUTALIST' | 'MONOCHROME';
 export type ThemeTexture = 'NONE' | 'DOTS' | 'GRID' | 'NOISE';
 export type ThemeFont = 'SANS' | 'SERIF' | 'MONO' | 'DISPLAY';
 export type CardStyle = 'FLAT' | 'GLASSMORPHIC' | 'SOFT_SHADOW' | 'BRUTALIST';
@@ -88,39 +91,66 @@ export interface Theme {
   buttonStyle?: ButtonStyle;
 }
 
+/* The accent every legacy profile falls back to. Was indigo #6366f1. */
+export const DEFAULT_ACCENT = '#013e37';
+
 export const DEFAULT_THEME: Theme = {
   preset: 'MINIMAL',
-  colors: { background: '#ffffff', card: '#f8f9fa', accent: '#6366f1', text: '#0f172a', descriptionColor: '#64748b' },
+  colors: { background: '#fdfbf3', card: '#fffefa', accent: DEFAULT_ACCENT, text: '#013e37', descriptionColor: '#48706a' },
   texture: 'NONE',
   fontFamily: 'SANS',
   cardStyle: 'FLAT',
   buttonStyle: 'ROUNDED',
 };
 
-export const THEME_PRESETS: Record<ThemePreset, { colors: ThemeColors; texture: ThemeTexture }> = {
+/* A preset is the whole look, not just the colors — picking one sets the font,
+   card treatment, button shape and texture too. Each field stays individually
+   editable afterwards; the preset is a starting point, not a lock. */
+export interface ThemePresetSpec {
+  colors: ThemeColors;
+  texture: ThemeTexture;
+  fontFamily: ThemeFont;
+  cardStyle: CardStyle;
+  buttonStyle: ButtonStyle;
+}
+
+export const THEME_PRESETS: Record<ThemePreset, ThemePresetSpec> = {
   MINIMAL: {
-    colors: { background: '#ffffff', card: '#f8f9fa', accent: '#6366f1', text: '#0f172a', descriptionColor: '#64748b' },
+    colors: { background: '#fdfbf3', card: '#fffefa', accent: '#013e37', text: '#013e37', descriptionColor: '#48706a' },
     texture: 'NONE',
+    fontFamily: 'SANS',
+    cardStyle: 'FLAT',
+    buttonStyle: 'ROUNDED',
   },
   NEON: {
     colors: { background: '#0a0a0a', card: '#141414', accent: '#22d3ee', text: '#f0f0f0', descriptionColor: '#94a3b8' },
-    texture: 'GRID',
+    texture: 'DOTS',
+    fontFamily: 'MONO',
+    cardStyle: 'SOFT_SHADOW',
+    buttonStyle: 'SHARP',
   },
   GLASSMORPHISM: {
-    colors: { background: '#0f172a', card: 'rgba(255,255,255,0.06)', accent: '#a78bfa', text: '#e2e8f0', descriptionColor: '#94a3b8' },
+    colors: { background: '#012b26', card: 'rgba(255,239,179,0.07)', accent: '#ffefb3', text: '#fdfbf3', descriptionColor: '#c2b78b' },
     texture: 'NONE',
+    fontFamily: 'SERIF',
+    cardStyle: 'GLASSMORPHIC',
+    buttonStyle: 'PILL',
   },
+  /* Brutalist gets the loudest pairing the palette allows: butter ground, pure
+     black type, ink accent — hard edges, no softening anywhere. */
   BRUTALIST: {
-    colors: { background: '#fffbe6', card: '#ffffff', accent: '#ff5722', text: '#000000', descriptionColor: '#555555' },
-    texture: 'NONE',
-  },
-  SOFT: {
-    colors: { background: '#f9f5ff', card: '#ffffff', accent: '#8b5cf6', text: '#1e1b4b', descriptionColor: '#7c6fa0' },
-    texture: 'NONE',
+    colors: { background: '#ffefb3', card: '#fffefa', accent: '#013e37', text: '#000000', descriptionColor: '#3d3d3d' },
+    texture: 'GRID',
+    fontFamily: 'DISPLAY',
+    cardStyle: 'BRUTALIST',
+    buttonStyle: 'SHARP',
   },
   MONOCHROME: {
     colors: { background: '#f8f8f8', card: '#ffffff', accent: '#374151', text: '#111827', descriptionColor: '#6b7280' },
-    texture: 'NONE',
+    texture: 'NOISE',
+    fontFamily: 'MONO',
+    cardStyle: 'FLAT',
+    buttonStyle: 'GHOST',
   },
 };
 
@@ -144,4 +174,6 @@ export interface Profile {
   skills: Skill[];
   userId?: string;
   accountType?: AccountType;
+  /** False only while a password sign-up hasn't clicked its verification link. */
+  emailVerified?: boolean;
 }

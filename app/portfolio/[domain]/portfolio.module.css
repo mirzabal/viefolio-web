@@ -1,0 +1,73 @@
+/* Chrome around a published portfolio. Deliberately minimal — the user's
+   theme owns everything inside, this only frames it. */
+
+.page {
+  min-block-size: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 40;
+  border-block-end: 1px solid;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.barInner {
+  inline-size: 100%;
+  max-inline-size: 60rem;
+  margin-inline: auto;
+  padding: 0.85rem var(--space-m);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.who img {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+}
+
+.credit {
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: opacity var(--dur-hover) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .credit:hover {
+    opacity: 0.7;
+  }
+}
+
+/* Full-bleed on purpose: the theme texture paints this whole band, so the
+   reading-width cap lives on the content inside PortfolioView instead. The
+   Viefolio bar and footer stay outside it and keep their own ground. */
+.main {
+  flex: 1;
+  inline-size: 100%;
+}
+
+.footer {
+  border-block-start: 1px solid;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.handle {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+}

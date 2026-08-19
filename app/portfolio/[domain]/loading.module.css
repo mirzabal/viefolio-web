@@ -1,0 +1,64 @@
+.bar {
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.mark { inline-size: 1.5rem; block-size: 1.5rem; border-radius: var(--radius-xs); }
+.name { inline-size: 7rem; block-size: 0.9rem; }
+.credit { inline-size: 6rem; block-size: 0.7rem; }
+
+.body {
+  inline-size: 100%;
+  max-inline-size: 60rem;
+  margin-inline: auto;
+  padding: clamp(2.5rem, 6vw, 4rem) var(--space-m);
+}
+
+.identity {
+  display: flex;
+  gap: var(--space-m);
+  align-items: flex-start;
+  margin-block-end: var(--space-xl);
+}
+
+.avatar { inline-size: 5rem; block-size: 5rem; border-radius: var(--radius-l); flex-shrink: 0; }
+
+.identityText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.lineLg { inline-size: 12rem; block-size: 1.6rem; }
+.lineMd { inline-size: 8rem; block-size: 1rem; }
+.lineSm { inline-size: min(22rem, 100%); block-size: 0.7rem; }
+
+.pills {
+  display: flex;
+  gap: 0.5rem;
+  margin-block-end: var(--space-xl);
+}
+
+.pill { inline-size: 2.5rem; block-size: 2.5rem; border-radius: var(--radius-m); }
+
+.grid {
+  display: grid;
+  gap: var(--space-s);
+  grid-template-columns: 1fr;
+  padding-block-end: var(--space-2xl);
+}
+
+@media (min-width: 44rem) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: var(--space-s);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-l);
+}
+
+.thumb { block-size: 8rem; border-radius: var(--radius-m); }

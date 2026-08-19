@@ -1,0 +1,1232 @@
+/* Dashboard chrome. Everything that isn't a shared primitive lives here. */
+
+.app {
+  block-size: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+/* ── Top bar ────────────────────────────────────────────── */
+.topbar {
+  flex-shrink: 0;
+  block-size: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding-inline: var(--space-s);
+  border-block-end: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.brand img {
+  inline-size: 1.6rem;
+  block-size: 1.6rem;
+}
+
+.crumb {
+  color: var(--ink-3);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.crumbSep {
+  color: var(--line);
+}
+
+.email {
+  display: none;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  max-inline-size: 12rem;
+}
+
+@media (min-width: 64rem) {
+  .email {
+    display: block;
+  }
+}
+
+.avatarBtn {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px transparent;
+  transition: box-shadow var(--dur-hover) ease, transform var(--dur-press) var(--ease-out);
+}
+
+.avatarBtn:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .avatarBtn:hover {
+    box-shadow: 0 0 0 2px var(--butter-deep);
+  }
+}
+
+.avatarImg {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.avatarLetter {
+  inline-size: 100%;
+  block-size: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--butter);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.hideNarrow {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .hideNarrow {
+    display: inline;
+  }
+}
+
+/* ── Main split ─────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor {
+  inline-size: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-inline-end: 1px solid var(--line);
+  background: var(--paper);
+}
+
+@media (min-width: 60rem) {
+  .editor {
+    inline-size: 28rem;
+  }
+}
+
+@media (min-width: 80rem) {
+  .editor {
+    inline-size: 30rem;
+  }
+}
+
+.preview {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  background: var(--paper-sunk);
+}
+
+@media (min-width: 60rem) {
+  .preview {
+    display: block;
+  }
+}
+
+.previewInner {
+  padding: var(--space-m);
+  max-inline-size: 60rem;
+  margin-inline: auto;
+}
+
+.previewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  margin-block-end: var(--space-s);
+}
+
+.previewFrame {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--paper-raised);
+  overflow: hidden;
+  box-shadow: var(--shadow-m);
+}
+
+/* ── Tabs ───────────────────────────────────────────────── */
+.tabs {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-s) 0;
+}
+
+.tablist {
+  display: flex;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border-radius: var(--radius-m);
+  background: var(--paper-sunk);
+}
+
+.tab {
+  position: relative;
+  flex: 1;
+  padding-block: 0.45rem;
+  border-radius: var(--radius-s);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.tabPill {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-s);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-s);
+}
+
+.tabLabel {
+  position: relative;
+  z-index: 1;
+  color: var(--ink-3);
+  transition: color var(--dur-hover) ease;
+}
+
+.tab[aria-current="page"] .tabLabel {
+  color: var(--ink);
+}
+
+.pane {
+  flex: 1;
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.paneScroll {
+  flex: 1;
+  overflow-y: auto;
+  /* Extra room at the end: with the Save buttons gone the last control used to
+     sit flush against the scroll edge. */
+  padding: var(--space-m) var(--space-s) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.paneHead h2 {
+  font-size: var(--step-1);
+}
+
+.paneHead p {
+  margin-block-start: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.sectionLabel {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-block-end: 0.5rem;
+}
+
+/* ── Avatar block ───────────────────────────────────────── */
+.avatarEdit {
+  position: relative;
+  inline-size: 4rem;
+  block-size: 4rem;
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatarEdit img,
+.avatarEdit .avatarLetter {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  font-size: 1.4rem;
+}
+
+.avatarOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(1 43 38 / 0.55);
+  color: var(--butter);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--dur-hover) ease;
+}
+
+.avatarEdit:hover .avatarOverlay,
+.avatarOverlay:focus-within {
+  opacity: 1;
+}
+
+.uploadBusy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--paper) 75%, transparent);
+  color: var(--ink);
+}
+
+/* ── Toggle rows ────────────────────────────────────────── */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--paper-sunk);
+}
+
+.toggleRow p:first-child {
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.toggleRow p:last-child {
+  font-size: 0.68rem;
+  color: var(--ink-3);
+}
+
+/* ── Project list ───────────────────────────────────────── */
+.listHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: var(--space-s);
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  inline-size: 100%;
+  text-align: start;
+  padding: 0.6rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+  transition:
+    background-color var(--dur-hover) ease,
+    border-color var(--dur-hover) ease,
+    box-shadow var(--dur-hover) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+
+.listItem:active {
+  transform: scale(0.99);
+}
+
+.listItem[data-selected="true"] {
+  border-color: var(--ink);
+  background: var(--butter-wash);
+}
+
+.listItem[data-hidden="true"] {
+  opacity: 0.55;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .listItem:hover {
+    border-color: var(--ink-3);
+  }
+}
+
+.listThumb {
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: var(--radius-s);
+  object-fit: cover;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--paper-sunk);
+  color: var(--ink-3);
+}
+
+.listTitle {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.listDesc {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--ink-3);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding-block: var(--space-2xl);
+  text-align: center;
+}
+
+.emptyIcon {
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: var(--radius-m);
+  display: grid;
+  place-items: center;
+  background: var(--paper-sunk);
+  color: var(--ink-3);
+  margin-block-end: 0.4rem;
+}
+
+.empty strong {
+  font-size: 0.85rem;
+}
+
+.empty span {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+.footerBar {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-s);
+  border-block-start: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* ── Dialogs ────────────────────────────────────────────── */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--space-s);
+  background: rgb(1 43 38 / 0.42);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.dialog {
+  inline-size: 100%;
+  max-inline-size: 34rem;
+  max-block-size: 88dvh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-l);
+  overflow: hidden;
+  outline: none;
+}
+
+.dialogNarrow {
+  max-inline-size: 26rem;
+}
+
+.dialogHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: var(--space-s) var(--space-m);
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.dialogHead h3 {
+  font-size: var(--step-1);
+}
+
+.dialogBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+.dialogFoot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: var(--space-xs) var(--space-m);
+  border-block-start: 1px solid var(--line-soft);
+}
+
+/* ── Account drawer ─────────────────────────────────────── */
+.drawerScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgb(1 43 38 / 0.38);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.drawer {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: 100%;
+  max-inline-size: 26rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-inline-start: 1px solid var(--line);
+  box-shadow: var(--shadow-l);
+  outline: none;
+}
+
+.drawerHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: var(--space-m) var(--space-m) var(--space-s);
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+/* ── Insights ───────────────────────────────────────────── */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.stat {
+  padding: 0.7rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+}
+
+.statValue {
+  display: block;
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  font-size: var(--step-2);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.statLabel {
+  display: block;
+  margin-block-start: 0.15rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.chart {
+  padding: var(--space-s);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  block-size: 6rem;
+}
+
+.barCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.barValue {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--ink-2);
+}
+
+.bar {
+  inline-size: 100%;
+  border-radius: var(--radius-xs);
+  background: var(--ink);
+}
+
+.bar[data-empty="true"] {
+  background: var(--paper-sunk);
+}
+
+.barLabel {
+  font-size: 0.58rem;
+  color: var(--ink-3);
+}
+
+.device {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+}
+
+.deviceIcon {
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  border-radius: var(--radius-s);
+  display: grid;
+  place-items: center;
+  background: var(--butter);
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+/* ── Theme picker ───────────────────────────────────────── */
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.preset {
+  padding: 0.7rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-m);
+  text-align: start;
+  transition:
+    border-color var(--dur-hover) ease,
+    box-shadow var(--dur-hover) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+
+.preset:active {
+  transform: scale(0.98);
+}
+
+.preset[data-active="true"] {
+  border-color: var(--ink);
+  box-shadow: var(--shadow-m);
+}
+
+.presetSwatches {
+  display: flex;
+  gap: 0.25rem;
+  margin-block-end: 0.4rem;
+}
+
+.presetSwatches span {
+  inline-size: 1rem;
+  block-size: 1rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--line-soft);
+}
+
+.presetName {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.colorSwatch {
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.colorSwatch::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.colorSwatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 6px;
+}
+
+/* ── Checkpoints & links ────────────────────────────────── */
+.repeaterRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tickBox {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius-xs);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: transparent;
+  transition:
+    background-color var(--dur-hover) ease,
+    border-color var(--dur-hover) ease,
+    color var(--dur-hover) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+
+.tickBox:active {
+  transform: scale(0.9);
+}
+
+.tickBox[data-on="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--butter);
+}
+
+.done {
+  text-decoration: line-through;
+  color: var(--ink-3);
+}
+
+.iconBtn {
+  /* AnimatePresence mode="popLayout" pulls the exiting icon out of flow with
+     position:absolute. Without a positioned ancestor here it anchored to the
+     page and flew across the list on every visibility toggle. */
+  position: relative;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: var(--radius-s);
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  flex-shrink: 0;
+  transition: background-color var(--dur-hover) ease, color var(--dur-hover) ease, transform var(--dur-press) var(--ease-out);
+}
+
+.iconBtn:active {
+  transform: scale(0.92);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .iconBtn:hover {
+    background: var(--paper-sunk);
+    color: var(--ink);
+  }
+  .iconBtnDanger:hover {
+    background: var(--danger-wash);
+    color: var(--danger);
+  }
+}
+
+.moveStack {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.moveBtn {
+  padding: 0.1rem;
+  border-radius: var(--radius-xs);
+  color: var(--ink-3);
+  transition: color var(--dur-hover) ease;
+}
+
+.moveBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .moveBtn:not(:disabled):hover {
+    color: var(--ink);
+  }
+}
+
+.reorderItem {
+  cursor: grab;
+}
+
+.reorderItem:active {
+  cursor: grabbing;
+}
+
+.reorderRow {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+}
+
+/* ── Toast ──────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  inset-block-end: var(--space-m);
+  inset-inline-start: 50%;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-inline-size: min(28rem, calc(100vw - 2rem));
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line);
+  background: var(--ink);
+  color: var(--butter);
+  font-size: var(--step--1);
+  font-weight: 550;
+  box-shadow: var(--shadow-l);
+}
+
+.toast[data-tone="error"] {
+  background: var(--danger);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ── Danger zone ────────────────────────────────────────── */
+.danger {
+  padding: var(--space-s);
+  border: 1px solid rgb(161 45 26 / 0.2);
+  border-radius: var(--radius-m);
+  background: var(--danger-wash);
+}
+
+.danger h4 {
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.danger p {
+  margin-block-start: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.codeInput {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;
+}
+
+/* ── Mobile preview toggle ──────────────────────────────── */
+.mobilePreviewBtn {
+  position: fixed;
+  inset-block-end: var(--space-m);
+  inset-inline-end: var(--space-m);
+  z-index: 40;
+  box-shadow: var(--shadow-l);
+}
+
+@media (min-width: 60rem) {
+  .mobilePreviewBtn {
+    display: none;
+  }
+}
+
+.mobileSheet {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+.mobileSheetHead {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: var(--space-s);
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.mobileSheetBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-s);
+}
+
+/* ── Boot ───────────────────────────────────────────────── */
+.boot {
+  block-size: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+}
+
+.bootInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+}
+
+/* ── Text scale used across the panes ───────────────────── */
+.paneTitle {
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+.strongMd {
+  font-size: var(--step-0);
+  font-weight: 700;
+}
+.strongSm {
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.strongXs {
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+.metaSm {
+  font-size: 0.85rem;
+  color: var(--ink-3);
+}
+.metaXs {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+.meta2Xs {
+  font-size: 0.65rem;
+  color: var(--ink-3);
+}
+.dangerText {
+  color: var(--danger);
+}
+.linkXs {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--butter-deep);
+}
+
+.liveDot {
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+}
+
+.dot {
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.panelBox {
+  padding: 0.85rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+}
+.panelBox[data-dim="true"] {
+  background: var(--paper-sunk);
+  opacity: 0.85;
+}
+
+.divideTop {
+  padding-block-start: var(--space-s);
+  border-block-start: 1px solid var(--line-soft);
+}
+
+.emptyNote {
+  padding-block: var(--space-s);
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-m);
+}
+
+.selectedBox {
+  padding: var(--space-s);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-m);
+  background: var(--butter-wash);
+}
+
+.thumbBox {
+  position: relative;
+  inline-size: 5rem;
+  block-size: 3.5rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  background: var(--paper-sunk);
+  color: var(--ink-3);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatarEditImg {
+  inline-size: 4rem;
+  block-size: 4rem;
+  border-radius: var(--radius-m);
+  object-fit: cover;
+}
+
+.urlChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--paper-sunk);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--ink-3);
+}
+
+.checkLabel {
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.78rem;
+}
+
+.swatchChip {
+  inline-size: 1.4rem;
+  block-size: 1.4rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.presetPreview {
+  inline-size: 100%;
+  block-size: 2.5rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-soft);
+  display: grid;
+  place-items: center;
+  margin-block-end: 0.4rem;
+}
+
+.codePreview {
+  text-align: center;
+  font-weight: 700;
+  border-color: var(--ink);
+  background: var(--butter-wash);
+}
+
+.ringSpinner {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: 2px solid var(--ink);
+  border-block-start-color: transparent;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+.ringSpinnerSm {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+.skeletonStat {
+  block-size: 4.5rem;
+}
+.skeletonChart {
+  block-size: 9rem;
+}
+.skeletonRow {
+  block-size: 3.6rem;
+}
+
+.chevron {
+  /* The SVG carries no width/height, so without these it falls back to the
+     300x150 replaced-element default and swallows the button. */
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--ink-3);
+  transition: transform var(--dur-enter) var(--ease-out);
+}
+.chevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.dangerIcon {
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+.dangerOutline {
+  --btn-border: rgb(161 45 26 / 0.35);
+}
+
+.meterName {
+  inline-size: 5rem;
+  flex-shrink: 0;
+}
+.meterValue {
+  inline-size: 2.6rem;
+  text-align: end;
+  font-family: var(--font-mono);
+}
+
+.previewBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border-block-end: 1px solid var(--line-soft);
+  background: var(--paper-sunk);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringSpinner {
+    animation-duration: 1.6s;
+  }
+  .chevron {
+    transition: none;
+  }
+}
+
+.successText {
+  color: var(--success);
+}
+
+.presetPad {
+  padding: var(--space-s);
+}
+
+.iconFlex {
+  display: flex;
+}
+
+/* ── Section heads & list toolbars ───────────────────────
+   Every pane opens the same way: title, one sentence saying what the
+   section does, and the section-level Visible/Hidden switch on the right.
+   The per-list controls (count, add, reorder) sit in .listToolbar below it,
+   so "does this section show at all" never sits next to "add a row". */
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+.sectionHead .paneTitle {
+  margin-block-end: 0.15rem;
+}
+
+.listToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+
+/* The projects list toolbar sits outside .paneScroll, so it brings its own
+   padding rather than inheriting the pane's gap. */
+.listToolbarInset {
+  flex-shrink: 0;
+  padding: var(--space-xs) var(--space-s);
+}
+
+.countLabel {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--ink-3);
+}
+
+.autosave {
+  padding-block: 0.45rem 0.1rem;
+  font-size: 0.68rem;
+  color: var(--ink-3);
+  text-align: end;
+}
+
+/* Both are .input/.select, which are width:100%. In a flex row that makes
+   them fight the field they sit next to for every pixel — the checkpoint
+   percentage and the link type need a fixed track instead. */
+.numField {
+  flex: 0 0 4rem;
+  inline-size: 4rem;
+  text-align: center;
+}
+
+.typeField {
+  flex: 0 0 8.5rem;
+  inline-size: 8.5rem;
+}
+
+
+/* Email-verification gate — the only thing an unverified account can see. */
+.verifyGate {
+  gap: var(--space-s);
+  max-inline-size: 22rem;
+  text-align: center;
+}
+
+.verifyGate h1 {
+  font-size: var(--step-2);
+}
