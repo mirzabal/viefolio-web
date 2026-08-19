@@ -396,8 +396,12 @@
   opacity: 0.5;
 }
 
+/* Absolute, not percentage sizing: the parent grid is content-centred, so a
+   percentage block-size would be indefinite and the image would lay out at its
+   natural size and overflow. */
 .mediaImg {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   inline-size: 100%;
   block-size: 100%;
@@ -655,7 +659,7 @@
   inset: 0;
   z-index: 90;
   display: grid;
-  place-items: center;
+  place-items: stretch;
   padding: var(--space-m);
 }
 
@@ -665,19 +669,27 @@
   background: rgb(1 20 18 / 0.88);
 }
 
+/* Absolute inset instead of 100% sizing: percentage heights inside a grid
+   whose row is content-sized are indefinite, which let the frame (and the
+   image) grow past the viewport. */
 .lightboxFrame {
-  position: relative;
+  position: absolute;
+  inset: var(--space-m);
   z-index: 1;
-  inline-size: 100%;
-  block-size: 100%;
   display: grid;
   place-items: center;
   outline: none;
 }
 
 .lightboxFrame img {
+  /* Grid items get min-block-size: auto, which beats max-block-size and let
+     the image lay out at its natural height. */
+  min-inline-size: 0;
+  min-block-size: 0;
   max-inline-size: 100%;
   max-block-size: 100%;
+  inline-size: auto;
+  block-size: auto;
   object-fit: contain;
   border-radius: var(--radius-m);
 }

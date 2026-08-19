@@ -7,13 +7,32 @@ import { useEffect, useRef } from "react";
    dialog is dismissable. Overlays used to implement Escape individually
    and nothing else — so a modal left the page scrolling behind it and
    keyboard focus outside the dialog. */
+/* Ref-counted so stacked dialogs (lightbox over a detail modal) and effect
+   re-runs can't capture "hidden" as the value to restore and leave the page
+   permanently unscrollable. */
+let lockCount = 0;
+let savedOverflow = "";
+
+function lockScroll() {
+  if (lockCount++ === 0) {
+    savedOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function unlockScroll() {
+  if (--lockCount <= 0) {
+    lockCount = 0;
+    document.body.style.overflow = savedOverflow;
+  }
+}
+
 export function useDialog(onClose: () => void, { closeOnEscape = true } = {}) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    const { overflow } = document.body.style;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     ref.current?.focus();
 
     const onKey = (e: KeyboardEvent) => {
@@ -35,7 +54,7 @@ export function useDialog(onClose: () => void, { closeOnEscape = true } = {}) {
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
+      unlockScroll();
       previouslyFocused?.focus();
     };
   }, [onClose, closeOnEscape]);

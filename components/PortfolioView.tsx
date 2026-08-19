@@ -113,14 +113,7 @@ const PROJECT_TYPE_LABELS: Record<string, string> = {
 function ProgressBar({ value, color, height = 6, className = "" }: { value: number; color: string; height?: number; className?: string }) {
   return (
     <span className={`progress ${className}`} style={{ "--progress-h": `${height}px`, "--track": "var(--t-sunk)" } as React.CSSProperties}>
-      <m.span
-        className="progress__fill"
-        style={{ width: `${value}%`, background: color }}
-        initial={{ transform: "scaleX(0)" }}
-        whileInView={{ transform: "scaleX(1)" }}
-        viewport={REVEAL_VIEWPORT}
-        transition={{ duration: 0.6, ease: EASE_OUT }}
-      />
+      <span className="progress__fill bar-fill" style={{ width: `${value}%`, background: color }} />
     </span>
   );
 }

@@ -966,6 +966,11 @@ p {
     transform: scaleY(0);
   }
 }
+@keyframes growRight {
+  from {
+    transform: scaleX(0);
+  }
+}
 @keyframes drift {
   50% {
     transform: translateY(-8px);
@@ -980,6 +985,9 @@ p {
 }
 .drift {
   animation: drift 6s ease-in-out infinite;
+}
+.bar-fill {
+  animation: growRight 600ms var(--ease-out) both;
 }
 .bar-grow {
   transform-origin: bottom;
@@ -1022,6 +1030,7 @@ p {
     scroll-behavior: auto;
   }
   .drift,
+  .bar-fill,
   .bar-grow {
     animation: none;
   }
