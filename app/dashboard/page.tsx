@@ -222,6 +222,7 @@ export default function DashboardPage() {
   const [projectImgUploading, setProjectImgUploading] = useState(false);
   const [editLightbox, setEditLightbox] = useState<string | null>(null);
   const backupCheckpoints = useRef<Checkpoint[]>([]);
+  const [aiBusy, setAiBusy] = useState<"generate" | "percentages" | null>(null);
 
   /* ─── Escape closes the topmost modal ──────────────── */
   useEffect(() => {
@@ -714,6 +715,53 @@ export default function DashboardPage() {
       setDeleteError("Something went wrong deleting your account. Please try again.");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  /* ─── AI checkpoints (Gemini, via /api/ai/checkpoints) ─ */
+  async function runAI(mode: "generate" | "percentages") {
+    if (!user || !editingProject) return;
+    setAiBusy(mode);
+    try {
+      const res = await fetch("/api/ai/checkpoints", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify(mode === "generate"
+          ? {
+              mode,
+              title: editingProject.title,
+              description: editingProject.description,
+              techStack: editingProject.techStack.map(t => t.technologyName),
+              links: editingProject.links.map(l => ({ type: l.type, url: l.url })),
+            }
+          : {
+              mode,
+              titles: sorted(editingProject.checkpoints).map(c => c.title.trim()).filter(Boolean),
+            }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { showToast(data.error ?? "The AI request failed. Try again."); return; }
+
+      if (mode === "generate") {
+        setEditingProject(prev => prev && ({
+          ...prev,
+          checkpoints: data.checkpoints.map((c: Checkpoint, i: number) => ({ ...c, id: crypto.randomUUID(), orderIndex: i })),
+        }));
+        showToast("Checkpoints generated.", "success");
+      } else {
+        // Percentages come back aligned to the sorted, non-empty titles we sent.
+        const order = sorted(editingProject.checkpoints).filter(c => c.title.trim());
+        const byId = new Map(order.map((c, i) => [c.id, data.percentages[i] as number]));
+        setEditingProject(prev => prev && ({
+          ...prev,
+          checkpoints: prev.checkpoints.map(c => byId.has(c.id) ? { ...c, percentage: byId.get(c.id)! } : c),
+        }));
+        showToast("Percentages generated.", "success");
+      }
+    } catch {
+      showToast("Network error. Please try again.");
+    } finally {
+      setAiBusy(null);
     }
   }
 
@@ -1249,7 +1297,25 @@ export default function DashboardPage() {
               <div>
                 <div className="row row--between">
                   <label className="label">Checkpoints</label>
-                  <button onClick={() => setEditingProject({...editingProject, checkpoints: [...editingProject.checkpoints, { id: crypto.randomUUID(), title: "", percentage: 0, isCompleted: false, orderIndex: editingProject.checkpoints.length }]})} className={css.linkXs}>+ Add</button>
+                  <div className="row">
+                    <button
+                      onClick={() => runAI("generate")}
+                      disabled={!!aiBusy || !editingProject.title.trim()}
+                      title={editingProject.title.trim() ? "Replaces the list below" : "Add a title first"}
+                      className={css.linkXs}
+                    >
+                      {aiBusy === "generate" ? "Generating…" : "✦ Generate with AI"}
+                    </button>
+                    <button
+                      onClick={() => runAI("percentages")}
+                      disabled={!!aiBusy || editingProject.checkpoints.filter(c => c.title.trim()).length === 0}
+                      title="Splits 100% across your checkpoints"
+                      className={css.linkXs}
+                    >
+                      {aiBusy === "percentages" ? "Generating…" : "✦ Percentages"}
+                    </button>
+                    <button onClick={() => setEditingProject({...editingProject, checkpoints: [...editingProject.checkpoints, { id: crypto.randomUUID(), title: "", percentage: 0, isCompleted: false, orderIndex: editingProject.checkpoints.length }]})} className={css.linkXs}>+ Add</button>
+                  </div>
                 </div>
                 <div className="col">
                   {sorted(editingProject.checkpoints).map((cp) => (

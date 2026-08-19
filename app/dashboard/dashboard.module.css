@@ -324,7 +324,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-s);
-  padding: var(--space-s);
+  /* Block-start matches .paneScroll so the Projects heading lines up with the
+     other tabs' — this header is fixed, so it can't inherit that padding. */
+  padding: var(--space-m) var(--space-s) var(--space-s);
   border-block-end: 1px solid var(--line-soft);
 }
 
