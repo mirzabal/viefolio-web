@@ -18,8 +18,9 @@ export const metadata: Metadata = {
     default: "Viefolio — Your work deserves a beautiful home",
     template: "%s · Viefolio",
   },
+  // 155 characters: past ~160 Google truncates mid-sentence in the SERP.
   description:
-    "Build a portfolio that grows with you. Six themes, multi-persona layouts, live progress tracking, and your own yourname.viefolio.com address. Free to start, on web and iOS.",
+    "Build a portfolio that grows with you — six themes, layouts shaped around your craft, and your own yourname.viefolio.com address. Free, web and iOS.",
   applicationName: "Viefolio",
   authors: [{ name: "Viefolio" }],
   creator: "Viefolio",

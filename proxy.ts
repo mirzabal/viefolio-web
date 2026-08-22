@@ -39,7 +39,19 @@ export function proxy(request: NextRequest) {
 
   // Rewrite to the dynamic portfolio route
   const url = request.nextUrl.clone();
-  url.pathname = `/portfolio/${subdomain}${pathname === "/" ? "" : pathname}`;
+
+  // robots.txt and sitemap.xml are reserved metadata names in Next, so a route
+  // segment named after them never resolves. Send them to the seo/ handler,
+  // which serves per-host versions — otherwise every portfolio subdomain would
+  // answer 404 for both and hand the crawler nothing to follow.
+  const SEO_FILES: Record<string, string> = {
+    "/robots.txt": "robots",
+    "/sitemap.xml": "sitemap",
+  };
+  const seoFile = SEO_FILES[pathname];
+  url.pathname = seoFile
+    ? `/portfolio/${subdomain}/seo/${seoFile}`
+    : `/portfolio/${subdomain}${pathname === "/" ? "" : pathname}`;
 
   return NextResponse.rewrite(url);
 }

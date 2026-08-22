@@ -22,7 +22,9 @@ export interface Project {
   title: string;
   description: string;
   status: "RELEASED" | "IN_PROGRESS" | string;
+  /* imageUrl stays the cover (imageUrls[0]) so older clients keep working. */
   imageUrl: string;
+  imageUrls?: string[];
   showImage: boolean;
   icon: string;
   projectType: "SOLO" | "TEAM" | "INTERNSHIP" | "ACADEMIC" | "FREELANCE" | "CLIENT" | "PERSONAL" | "OPEN_SOURCE" | "COMMISSION";
@@ -176,4 +178,7 @@ export interface Profile {
   accountType?: AccountType;
   /** False only while a password sign-up hasn't clicked its verification link. */
   emailVerified?: boolean;
+  /** Opt-in to the public /explore directory. Absent means not listed —
+      nobody is added to a public index without asking for it. */
+  listedInDirectory?: boolean;
 }

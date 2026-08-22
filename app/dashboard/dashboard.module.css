@@ -1232,3 +1232,18 @@
 .verifyGate h1 {
   font-size: var(--step-2);
 }
+
+/* Per-image delete on the project thumb strip. */
+.thumbRemove {
+  position: absolute;
+  inset-block-start: 0.15rem;
+  inset-inline-end: 0.15rem;
+  z-index: 3;
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgb(1 20 18 / 0.66);
+  color: #fff;
+}

@@ -3,7 +3,7 @@ import LegalPage, { LegalSection } from "@/components/LegalPage";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "The terms and conditions for using Viefolio.",
+  description: "The terms of service for Viefolio — your account, the content you publish, portfolio subdomains, acceptable use, and how either side can end things.",
   alternates: { canonical: "/terms" },
 };
 

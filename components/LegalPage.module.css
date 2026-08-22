@@ -48,7 +48,9 @@
   margin-block-start: var(--space-s);
 }
 
-.section a {
+/* :not(.btn) — otherwise this beats .btn's own colour and paints ink text
+   on an ink fill. */
+.section a:not(:global(.btn)) {
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 0.18em;

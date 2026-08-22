@@ -123,7 +123,7 @@ function HoldToDelete({ onConfirm, label = "Delete Project" }: { onConfirm: () =
   );
 }
 
-const defaultProfile: Profile = { fullName: "", title: "", bio: "", location: "", username: "", avatarUrl: "", showAvatar: true, theme: DEFAULT_THEME, socialLinks: [], socialLinksLayout: 'ICONS', userInfoLayout: 'LEFT', showLinks: true, showProjects: true, showSkills: true, portfolioVisibility: "ALL", layoutStyle: "CLASSIC", skills: [], userId: "" };
+const defaultProfile: Profile = { fullName: "", title: "", bio: "", location: "", username: "", avatarUrl: "", showAvatar: true, theme: DEFAULT_THEME, socialLinks: [], socialLinksLayout: 'ICONS', userInfoLayout: 'LEFT', showLinks: true, showProjects: true, showSkills: true, portfolioVisibility: "ALL", layoutStyle: "CLASSIC", skills: [], userId: "", listedInDirectory: false };
 
 /* ═════════════════════════════════════════════════════════ */
 export default function DashboardPage() {
@@ -360,6 +360,7 @@ export default function DashboardPage() {
           showProjects: d.showProjects ?? true,
           showSkills: d.showSkills ?? true,
           portfolioVisibility: d.portfolioVisibility ?? "ALL",
+          listedInDirectory: d.listedInDirectory ?? false,
           layoutStyle: d.layoutStyle === 'LINK_IN_BIO' ? 'CLASSIC' : (d.layoutStyle ?? "CLASSIC"),
           // Saved as null (Firestore rejects undefined) — normalize it back, or
           // autosave sees null !== undefined and re-saves on a loop forever.
@@ -423,6 +424,7 @@ export default function DashboardPage() {
           description: data.description ?? "",
           status: ((data.status ?? "IN_PROGRESS").toUpperCase() === "COMPLETED" ? "RELEASED" : (data.status ?? "IN_PROGRESS").toUpperCase()) as Project["status"],
           imageUrl: data.imageUrl ?? "",
+          imageUrls: data.imageUrls ?? (data.imageUrl ? [data.imageUrl] : []),
           showImage: data.showImage ?? false,
           icon: data.icon ?? "Code",
           projectType: (data.projectType ?? "SOLO") as Project["projectType"],
@@ -542,6 +544,7 @@ export default function DashboardPage() {
         showProjects: profile.showProjects ?? true,
         showSkills: profile.showSkills ?? true,
         portfolioVisibility: profile.portfolioVisibility,
+        listedInDirectory: !!profile.listedInDirectory,
         layoutStyle: profile.layoutStyle,
         // Firestore rejects undefined — use null when onboarding hasn't run yet
         accountType: profile.accountType ?? null,
@@ -621,7 +624,9 @@ export default function DashboardPage() {
         title: editingProject.title,
         description: editingProject.description,
         status: editingProject.status,
-        imageUrl: editingProject.imageUrl,
+        // imageUrl mirrors the cover so the iOS app and older data keep working.
+        imageUrl: editingProject.imageUrls?.[0] ?? editingProject.imageUrl,
+        imageUrls: editingProject.imageUrls ?? [],
         showImage: editingProject.showImage,
         icon: editingProject.icon,
         projectType: editingProject.projectType,
@@ -783,7 +788,7 @@ export default function DashboardPage() {
     const newProj: Project = {
       id: "new_" + crypto.randomUUID(),
       title: "", description: "", status: "IN_PROGRESS",
-      imageUrl: "", showImage: false, icon: "Code",
+      imageUrl: "", imageUrls: [], showImage: false, icon: "Code",
       projectType: "SOLO", startDate: "", endDate: "",
       techStack: [], checkpoints: [], links: [], userId: user.uid,
     };
@@ -806,23 +811,35 @@ export default function DashboardPage() {
   }
 
   /* ─── Project Image Upload ──────────────────────── */
-  async function uploadProjectImage(file: File, projectId: string) {
-    if (!user) return;
+  async function uploadProjectImages(files: File[], projectId: string) {
+    if (!user || files.length === 0) return;
     setProjectImgUploading(true);
     try {
       // Path embeds the owner's uid so storage rules can verify ownership
-      const storageRef = ref(storage, `project-images/${user.uid}/${projectId}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      if (editingProject && editingProject.id === projectId) {
-        setEditingProject({ ...editingProject, imageUrl: url });
-      }
+      const urls = await Promise.all(files.map(async (file) => {
+        const storageRef = ref(storage, `project-images/${user.uid}/${projectId}/${crypto.randomUUID()}`);
+        await uploadBytes(storageRef, file);
+        return getDownloadURL(storageRef);
+      }));
+      setEditingProject(prev => {
+        if (!prev || prev.id !== projectId) return prev;
+        const next = [...(prev.imageUrls ?? (prev.imageUrl ? [prev.imageUrl] : [])), ...urls];
+        return { ...prev, imageUrls: next, imageUrl: next[0] };
+      });
     } catch (err) { console.error("Project image upload error:", err); }
     finally { setProjectImgUploading(false); }
   }
 
+  function removeProjectImage(url: string) {
+    setEditingProject(prev => {
+      if (!prev) return prev;
+      const next = (prev.imageUrls ?? (prev.imageUrl ? [prev.imageUrl] : [])).filter(u => u !== url);
+      return { ...prev, imageUrls: next, imageUrl: next[0] ?? "" };
+    });
+  }
+
   const displayName = profile.fullName || user?.displayName || user?.email?.split("@")[0] || "User";
-  const displayTitle = profile.title || "Developer & Creator";
+  const displayTitle = profile.title || "Viefolio User";
 
   if (authLoading) return (
     <div className={css.boot}>
@@ -1013,6 +1030,22 @@ export default function DashboardPage() {
               </div>
 
               {/* ── Security ── */}
+              <div className={css.toggleRow}>
+                  <div>
+                    <p>List in the Explore directory</p>
+                    <p>Show your portfolio on viefolio.com/explore. Off by default, reversible any time.</p>
+                  </div>
+                  <button
+                    onClick={() => setProfile(p => ({...p, listedInDirectory: !p.listedInDirectory}))}
+                    className="switch"
+                    data-on={!!profile.listedInDirectory}
+                    role="switch"
+                    aria-checked={!!profile.listedInDirectory}
+                    aria-label="List in the Explore directory"
+                  >
+                    <span className="switch__knob" />
+                  </button>
+                </div>
               {isPasswordUser && (
                 <div>
                   <button
@@ -1251,21 +1284,30 @@ export default function DashboardPage() {
               </div>
               {/* Image Upload */}
               <div>
-                <label className="label">Project Image</label>
+                <label className="label">Project Images <span className="quiet">(first one is the cover)</span></label>
                 <div className="row">
-                  {editingProject.imageUrl ? (
-                    <div className={`${css.thumbBox} img-zone`} onClick={() => setEditLightbox(editingProject.imageUrl)}>
-                      <img src={editingProject.imageUrl} alt="" className="zoom-img w-full h-full object-cover"/>
+                  {(editingProject.imageUrls ?? []).map(url => (
+                    <div key={url} className={`${css.thumbBox} img-zone`} onClick={() => setEditLightbox(url)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="" className="zoom-img w-full h-full object-cover"/>
                       <div className="img-overlay"><svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width={16} height={16} style={{ color: "currentColor" }}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"/></svg></div>
+                      <button
+                        onClick={e => { e.stopPropagation(); removeProjectImage(url); }}
+                        aria-label="Remove image"
+                        className={css.thumbRemove}
+                      >
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.4} stroke="currentColor" width={12} height={12}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                      </button>
                     </div>
-                  ) : (
+                  ))}
+                  {(editingProject.imageUrls ?? []).length === 0 && (
                     <div className={css.thumbBox}>
                       <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={20} height={20}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91M6.75 12.75h.008v.008H6.75v-.008z"/></svg>
                     </div>
                   )}
                   <label className="chip chip--file" aria-disabled={projectImgUploading}>
-                    {projectImgUploading ? "Uploading…" : "Upload Image"}
-                    <input type="file" accept="image/*" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) uploadProjectImage(f, editingProject.id); }}/>
+                    {projectImgUploading ? "Uploading…" : "Upload Images"}
+                    <input type="file" accept="image/*" multiple className="sr-only" onChange={e => { const fs = Array.from(e.target.files ?? []); if (fs.length) uploadProjectImages(fs, editingProject.id); e.target.value = ""; }}/>
                   </label>
                 </div>
               </div>
@@ -1777,6 +1819,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 </div>
+                
               </div>
             </div>
           )}
@@ -2016,6 +2059,23 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </div>
+
+              <div className={css.toggleRow}>
+                  <div>
+                    <p>List in the Explore directory</p>
+                    <p>Show your portfolio on viefolio.com/explore. Off by default, reversible any time.</p>
+                  </div>
+                  <button
+                    onClick={() => setProfile(p => ({...p, listedInDirectory: !p.listedInDirectory}))}
+                    className="switch"
+                    data-on={!!profile.listedInDirectory}
+                    role="switch"
+                    aria-checked={!!profile.listedInDirectory}
+                    aria-label="List in the Explore directory"
+                  >
+                    <span className="switch__knob" />
+                  </button>
+                </div>
 
             </div>
           )}

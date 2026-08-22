@@ -163,6 +163,7 @@ async function fetchProjects(userId: string): Promise<Project[]> {
       description: fStr(doc, "description"),
       status: rawStatus === "COMPLETED" ? "RELEASED" : rawStatus,
       imageUrl: fStr(doc, "imageUrl"),
+      imageUrls: fArr(doc, "imageUrls").map(v => v.stringValue ?? "").filter(Boolean),
       showImage: fBool(doc, "showImage"),
       icon: fStr(doc, "icon") || "Code",
       projectType: (fStr(doc, "projectType") || "SOLO") as Project["projectType"],

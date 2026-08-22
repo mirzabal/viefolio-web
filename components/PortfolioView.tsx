@@ -584,6 +584,22 @@ function DetailModal({ p, color, onClose, onImageClick }: {
         </div>
 
         <div className={s.dialogBody}>
+          {(p.imageUrls?.length ?? 0) > 1 && (
+            <div className={s.gallery}>
+              {p.imageUrls!.map(url => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={e => { e.stopPropagation(); onImageClick?.(url); }}
+                  aria-label="Open image"
+                  className={s.galleryThumb}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" loading="lazy" decoding="async" />
+                </button>
+              ))}
+            </div>
+          )}
           {p.description && <p>{p.description}</p>}
           <div className={s.badgeRow} style={{ marginBlockEnd: 0 }}>
             {p.projectType && (

@@ -1,0 +1,274 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100dvh;
+}
+
+.main {
+  flex: 1;
+  padding-block: clamp(2.5rem, 6vw, 4.5rem) clamp(3rem, 8vw, 6rem);
+}
+
+.head {
+  max-inline-size: 44rem;
+  margin-block-end: clamp(2rem, 5vw, 3rem);
+}
+
+.head h1 {
+  margin-block-start: var(--space-xs);
+  font-size: var(--step-5);
+}
+
+.head p {
+  margin-block-start: var(--space-s);
+}
+
+.accent {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 60, "WONK" 1;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+/* ── Persona tabs ───────────────────────────────────────── */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding-block-end: var(--space-m);
+  margin-block-end: var(--space-m);
+  border-block-end: 1px solid var(--line);
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ink-2);
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    background-color var(--dur-hover) ease,
+    border-color var(--dur-hover) ease,
+    color var(--dur-hover) ease;
+}
+
+.filter:active {
+  transform: scale(0.97);
+}
+
+.filter[aria-current="page"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--butter);
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 0.72em;
+  opacity: 0.7;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .filter:hover {
+    background: var(--butter-wash);
+    border-color: var(--ink-3);
+    color: var(--ink);
+  }
+  .filter[aria-current="page"]:hover {
+    background: #01524a;
+    border-color: #01524a;
+    color: var(--butter);
+  }
+}
+
+/* ── Grid ───────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  gap: var(--space-s);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 40rem) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 62rem) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-m);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--paper-raised);
+  overflow: hidden;
+}
+
+/* A hairline of the owner's own accent colour — the only place their theme
+   shows through, so the directory doesn't read as four hundred identical rows. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 3px;
+  background: var(--accent);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-block-end: var(--space-s);
+}
+
+.avatar {
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: var(--radius-m);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--paper);
+}
+
+.name {
+  display: block;
+  font-size: var(--step-0);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.role {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.bio {
+  font-size: var(--step--1);
+  line-height: 1.65;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-block-end: var(--space-s);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-block-end: var(--space-s);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  margin-block-start: auto;
+  padding-block-start: var(--space-s);
+  border-block-start: 1px solid var(--line-soft);
+}
+
+.handle {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  flex-shrink: 0;
+  transition: gap var(--dur-hover) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .visit {
+    gap: 0.6rem;
+  }
+}
+
+/* ── Empty state ────────────────────────────────────────── */
+.empty {
+  padding: clamp(2.5rem, 8vw, 5rem) var(--space-m);
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--paper-sunk);
+}
+
+.empty h2 {
+  font-size: var(--step-2);
+}
+
+.empty p {
+  margin-block: var(--space-s) var(--space-m);
+  margin-inline: auto;
+  max-inline-size: 44ch;
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
+
+/* ── Closing note ───────────────────────────────────────── */
+.note {
+  margin-block-start: clamp(3rem, 8vw, 5rem);
+  padding: var(--space-m);
+  border-radius: var(--radius-l);
+  background: var(--paper-sunk);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  align-items: flex-start;
+}
+
+@media (min-width: 44rem) {
+  .note {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.note p {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  max-inline-size: 52ch;
+}
+
+.note strong {
+  display: block;
+  color: var(--ink);
+  font-size: var(--step-0);
+  margin-block-end: 0.2rem;
+}
